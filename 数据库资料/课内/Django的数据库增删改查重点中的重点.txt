@@ -1,0 +1,173 @@
+ - - - - - - -- - - - - - - - - - - - - - - - - - 配置- - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+一、配置
+  1.  使用MySQL数据库首先需要安装驱动程序：pip install PyMySQL
+
+  2.  在Django的工程同名子目录的__init__.py文件中添加如下语句：作用：让Django的ORM能以mysqldb的方式来调用PyMySQL
+	from pymysql import install_as_MySQLdb
+	install_as_MySQLdb()
+
+  3.  修改DATABASES配置信息：settings.py里配置
+	DATABASES = {
+    	    'default': {
+        	        'ENGINE': 'django.db.backends.mysql',
+        	        'HOST': '127.0.0.1',  # 数据库主机
+        	        'PORT': 3306,  # 数据库端口
+        	        'USER': 'root',  # 数据库用户名
+        	        'PASSWORD': 'mysql',  # 数据库用户密码
+        	        'NAME': 'django_demo'  # 数据库名字
+    	    }
+	}
+  4.  在MySQL中创建数据库：create database demo default charset=utf8;
+
+ - - - - - - -- - - - - - - - - - - - - - - - - - 前提准备- - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+二、定义模型类---看课件
+
+三、迁移
+  1.  生成迁移文件：python manage.py makemigrations
+  2.  同步到数据库中python manage.py migrate
+
+四、到数据库添加测试数据
+   
+五、shell工具 （作用：以直接在终端中执行测试python语句）
+  1.  查看mysql数据库日志（把68，69行前面的#去除）： sudo vi /etc/mysql/mysql.conf.d/mysqld.cnf
+  2.  重启mysql服务：                		       sudo service mysql restart
+  3.  实时查看数据库的日志内容： 		       sudo tail -f /var/log/mysql/mysql.log
+  4.  通过如下命令进入shell：      		       python manage.py shell
+  5.  导入模型类：                     		       from booktest.models import BookInfo
+
+
+
+ - - - - - - - - - -数据库操作 - - - - - - 增 - - - - - - 删 - - - - - 改 - - - - - -  查 - - - - - - - - - - -
+一、增
+  1.  模型类实例对象 = 模型类（类属性1 = 值1，类属性2 = 值2 , ...）+ save()
+	1.1.当增加时，有外键属性（英雄）===> 外键属性（英雄）= 模型类实例对象（书）
+
+  2.  模型类.objects.create(类属性1 = 值1，类属性2 = 值2 , ...)
+	2.1.以上可以被变量来接收，用于查值
+	2.2.当增加时，有外键属性（英雄）===> 外键属性（英雄）= 模型类实例对象（书）
+
+二、删
+  1.  模型类对象delete（）
+       hero = HeroInfo.objects.get(id=13)
+       hero.delete()
+
+  2.  模型类.objects.filter().delete()
+       HeroInfo.objects.filter(id=14).delete()
+
+
+三、改
+  1.  修改模型类对象的属性，然后执行save()方法
+       hero = HeroInfo.objects.get(hname='猪八戒')
+       hero.hname = '猪悟能'
+       hero.save()
+
+  2.  模型类.objects.filter().update()，会返回受影响的行数
+       HeroInfo.objects.filter(hname='沙悟净').update(hname='沙僧')
+
+四、查
+  1.  基本查询
+	1.1  get（） 查询单一结果，如果不存在会抛出模型类.DoesNotExist异常。
+	1.2  all（） 查询多个结果。
+	1.3  count（） 查询结果数量。
+
+  2.  过滤查询
+	2.0  语法：属性名称__比较运算符=值
+	2.1  filter（属性名称__比较运算符=值）     过滤出多个结果
+	2.2  exclude（属性名称__比较运算符=值） 排除掉符合条件剩下的结果
+	2.3  get（属性名称__比较运算符=值）       过滤单一结果
+	        +++++++++++++++++++++++++++++++++++++++
+	       《比较运算符》1）exact：表示判等
+		              2）contains：是否包含
+			3）startswith、endswith：以指定值开头或结尾
+	        运算符区分大小写，在运算符前加上 i 表示不区分大小写：如iexact、icontains、istartswith、iendswith
+			4）isnull：是否为null
+			5）in：是否包含在范围内
+			6）比较查询
+			     gt 大于 (greater then)
+			     gte 大于等于 (greater then equal)
+			     lt 小于 (less then)
+			     lte 小于等于 (less then equal)
+			     exclude(id=1)id不等于1
+			7）日期查询
+	         +++++++++++++++++++++++++++++++++++++++
+
+  3.  F对象 --- 作用 ：两个属性的比较
+	3.1  导入：from django.db.models import F
+
+	3.2  查询阅读量大于等于评论量的图书
+	      BookInfo.objects.filter(bread__gte=F('bcomment'))
+
+	3.3  查询阅读量大于2倍评论量的图书
+	      BookInfo.objects.filter(bread__gt=F('bcomment') * 2)
+
+  4.  Q对象 --- Q对象可以使用 &表示逻辑与、|表示逻辑或、~表示逻辑非
+	4.1  导入：from django.db.models import Q
+	
+	4.2  查询阅读量大于20，且编号小于3的图书
+	      BookInfo.objects.filter(bread__gt=20,id__lt=3)
+	      或
+	      BookInfo.objects.filter(bread__gt=20).filter(id__lt=3)
+	      或
+	      BookInfo.objects.filter(Q(bread__gt=20) & Q(pk__lt=3))
+	
+	4.3  查询阅读量大于20，或编号小于3的图书
+	      BookInfo.objects.filter(Q(bread__gt=20) | Q(pk__lt=3))
+	
+ 	4.4  查询编号不等于3的图书
+	      BookInfo.objects.filter(~Q(pk=3))
+
+  5.  聚合函数 --- 聚合函数包括：Avg 平均，Count 数量，Max 最大，Min 最小，Sum 求和，被定义在django.db.models
+	5.1  导入：from django.db.models import Sum,Max,Min,Avg,Count
+	5.2  查询图书的总阅读量
+	      BookInfo.objects.aggregate(Sum('bread'))
+	5.3  结合着aggregate使用，返回值是一个字典类型--->  {'属性名__聚合类小写':值}
+
+  6.  排序
+	6.1  BookInfo.objects.all().order_by('bread')  # 升序
+	6.2  BookInfo.objects.all().order_by('-bread')  # 降序
+
+
+  7.  关联查询
+	7.1  由一到多的访问语法：一对应的 模型类对象 . 多对应的模型类名小写_set
+		如：查询id=1的书籍的所有英雄
+		      BookInfo.objects.get(id=1).heroinfo_set.all()
+	
+	7.2  由多到一的访问语法：多对应的 模型类对象 . 多对应的模型类中的关系类属性名(外键属性名:hmame)
+		如：查询id=1的英雄所属的书籍（hbook是模型类的类属性名）
+		      HeroInfo.objects.get(id=1).hbook
+
+		注意点：查询id=1的英雄所属的书籍对应的id(hbook_id是在数据库的字段名)
+		      HeroInfo.objects.get(id=1).hbook_id
+
+  8.  关联过滤查询
+	8.1  由 [多模型类条件]  查询  [一模型类数据] 的语法：关联模型类名小写__属性名__条件运算符=值
+		如：查询图书，要求图书中的英雄的名字有 "乔峰"
+		      BookInfo.objects.filter(heroinfo__hname='乔峰')
+
+		如：查询图书，要求图书中的英雄的描述包含有 "八"
+		      BookInfo.objects.filter(heroinfo__hcomment__contains='八')
+
+	8.2  由 [一模型类条件]  查询  [多模型类数据] 的语法： 一模型类关联属性名__一模型类属性名__条件运算符=值
+		如：查询书名为“天龙八部”的所有英雄
+		      HeroInfo.objects.filter(hbook__btitle='天龙八部')
+
+		如：查询图书阅读量大于30的所有英雄
+		      HeroInfo.objects.filter(hbook__bread__gt=30)
+
+
+ - - - - - - -- - - - - - - - - - - - - - - - - - 查询集QuerySet- - - - - - - - - - - - - - - - - - - - - - - - - 
+一、调用如下过滤器方法时，Django会返回查询集
+  1. all()、filter()、exclude()、order_by()
+  2. 对查询集可以再次调用过滤器进行过滤
+  3. 判断某一个查询集是否有数据：exists()  有则返回True，没有则返回False
+
+二、两大特性
+  1.  惰性执行：创建查询集不会访问数据库，直到调用数据时，才会访问数据库，调用数据的情况包括迭代、序列化、与if合用
+  2.  缓存：使用同一个查询集，第一次使用时会发生数据库的查询，然后Django会把结果缓存下来，再次使用这个查询集时会使用缓存的数据，减少了数据库的查询次数
+
+三、限制查询集
+  1.  可以对查询集进行取下标或切片操作（注意：不支持负数索引），等同于sql中的limit和offset子句
+	获取第1、2项     qs = BookInfo.objects.all()[0:2]
+
+ - - - - - - -- - - - - - - - - - - - - - - - - -管理器Manager - - - - - - - - - - - - - - - - - - - - - - - - 
+课件，就是讲默认objects，变成你自己定义的

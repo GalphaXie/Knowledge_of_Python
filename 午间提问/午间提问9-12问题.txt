@@ -1,0 +1,16 @@
+1.	python2与python3 切换?
+
+
+2.请至少列举5个 PEP8 规范
+
+
+3.MySQL常见数据库引擎及比较
+
+
+4.Http请求中常见的请求方式
+
+
+5.为什么要使用django rest framework框架
+
+
+6.json序列化时，默认遇到中文会转换成unicode，如果想要保留中文怎么办？

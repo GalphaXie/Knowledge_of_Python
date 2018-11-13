@@ -1,0 +1,15 @@
+Redis
+redis是一个开源（BSD许可），内存存储的数据结构服务器，可用作数据库，高速缓存和消息队列代理。生产中我们主要用来存储用户的登录信息，设备的详情数据，以及会员签到点赞的信息等等。redis的持久化的两种方式：RDB和AOF。
+Redis提供了两种持久化选项，分别是RDB和AOF。
+RDB:默认情况下60秒刷新到disk一次[save 60 10000 当有1w条keys数据被改变时]，Redis的数据集保存在叫dump.rdb一个二进制文件，这种策略被称为快照。
+也可以手动调用Save或BGSAVE命令的：/usr/local/bin/redis-cli-h 127.0.0.1-p 6379 -apwd bgsave
+快照易恢复，文件也小，但是如果遇到宕机等情况的时候快照的数据可能会不完整。此时可能需要启用另一种持久化方式AOF，在配置文件中打开[appendonly yes]。
+AOF刷新日志到disk的规则：
+appendfsync always #always 表示每次有写操作都进行同步，非常慢，非常安全。
+appendfsync everysec #everysec表示对写操作进行累积，每秒同步一次
+官方的建议的everysec，安全，就是速度不够快，如果是机器出现问题可能会丢失1秒的数据。也可以手动执行bgrewriteaof进行AOF备份：/usr/local/bin/redis-cli-h 127.0.0.1-p 6379 -apwd bgrewriteaof
+我们现在的做法是一主(Master)多从(Slave)，主库不开启AOF持久化，只是每天备份一下RDB[官方给的建议是每小时备份RDB文件，看你的策略了]，而在从库上开启AOF备份，并且会用脚本将相应的备份文件推送到备份服务器。
+当redis服务器挂掉时，重启时将按照以下优先级恢复数据到内存：
+如果只配置AOF,重启时加载AOF文件恢复数据；
+如果同时 配置了RBD和AOF,启动是只加载AOF文件恢复数据;如果只配置RBD,启动是将加载dump文件恢复数据。
+恢复时需要注意，要是主库挂了不能直接重启主库，否则会直接覆盖掉从库的AOF文件，一定要确保要恢复的文件都正确才能启动，否则会冲掉原来的文件。

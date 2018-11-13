@@ -1,0 +1,19 @@
+1.什么是C/S和B/S架构？
+
+
+2.Nginx是什么及作用？
+
+
+3.django中F和Q的作用?
+
+
+4.使用orm和原生sql的优缺点？
+
+
+5.Flask中的g的作用？
+
+
+6.SQLAlchemy如何执行原生SQL？
+
+
+7.解释 PV、UV 的含义？
