@@ -943,12 +943,16 @@ python setup.py install
   **2. Linux 中软件安装的一般流程**
 
 - 解压   tar
+
   - 获取真正的配置文件
 - 配置  configure
+
   - 根据默认配置项或更改配置项, 生成编译配置文件(Makefile)
 - 编译   make
+
   - 根据 Makefile 内容, 编译生成指定的软件所需要的所有文件
 - 安装   make install
+
   - 将编译生成的所有文件,转移到软件指定安装的目录下面
 
 **8.3.3 nginx环境**
