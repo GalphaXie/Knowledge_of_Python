@@ -631,7 +631,9 @@ docker run -d <=> docker create + docker start    后台模式
 #### 容器关闭 docker stop
 
 ```
-docker run
+补充
+docker run -dti --rm centos bash
+# 那么当 stop 或 kill 掉容器的时候, 那么容器会被自动删除
 ```
 
 ```shell
@@ -664,5 +666,301 @@ f8b7611d03b8        centos              "python"            3 minutes ago       
 f71a5c68f152        centos              "python"            4 minutes ago       Exited (0) 4 minutes ago                       kind_goldwasser
 ```
 
+#### 容器终止  docker kill 
 
+```
+作用：
+	强制并立即关闭一个或多个处于暂停状态或者运行状态的容器
+命令格式：
+	docker kill [OPTIONS] CONTAINER [CONTAINER...]
+命令参数(OPTIONS)：
+	-s, --signal string   	指定发送给容器的关闭信号 (默认“KILL”信号)
+```
+
+> 补充
+>
+> ```shell
+> # 使用kill的时候默认发送的是 15)SIGTERM  ;    (通知即将关掉 ,  给时间回收一下内存等)
+> # 使用kill -9 是发送 9)SIGKILL
+> [root@izuf6csxy0jrgs3azvia67z docker_demo]# kill -l
+>  1) SIGHUP	 2) SIGINT	 3) SIGQUIT	 4) SIGILL	 5) SIGTRAP
+>  6) SIGABRT	 7) SIGBUS	 8) SIGFPE	 9) SIGKILL	10) SIGUSR1
+> 11) SIGSEGV	12) SIGUSR2	13) SIGPIPE	14) SIGALRM	15) SIGTERM
+> 16) SIGSTKFLT	17) SIGCHLD	18) SIGCONT	19) SIGSTOP	20) SIGTSTP
+> 21) SIGTTIN	22) SIGTTOU	23) SIGURG	24) SIGXCPU	25) SIGXFSZ
+> 26) SIGVTALRM	27) SIGPROF	28) SIGWINCH	29) SIGIO	30) SIGPWR
+> 31) SIGSYS	34) SIGRTMIN	35) SIGRTMIN+1	36) SIGRTMIN+2	37) SIGRTMIN+3
+> 38) SIGRTMIN+4	39) SIGRTMIN+5	40) SIGRTMIN+6	41) SIGRTMIN+7	42) SIGRTMIN+8
+> 43) SIGRTMIN+9	44) SIGRTMIN+10	45) SIGRTMIN+11	46) SIGRTMIN+12	47) SIGRTMIN+13
+> 48) SIGRTMIN+14	49) SIGRTMIN+15	50) SIGRTMAX-14	51) SIGRTMAX-13	52) SIGRTMAX-12
+> 53) SIGRTMAX-11	54) SIGRTMAX-10	55) SIGRTMAX-9	56) SIGRTMAX-8	57) SIGRTMAX-7
+> 58) SIGRTMAX-6	59) SIGRTMAX-5	60) SIGRTMAX-4	61) SIGRTMAX-3	62) SIGRTMAX-2
+> 63) SIGRTMAX-1	64) SIGRTMAX
+> ```
+
+```shell
+前提知识点：
+Linux其中两种终止进程的信号是：SIGTERM和SIGKILL
+SIGKILL信号：无条件终止进程信号。进程接收到该信号会立即终止，不进行清理和暂存工作。该信号不能被忽略、处理和阻塞，它向系统管理员提供了可以杀死任何进程的方法。
+SIGTERM信号：程序终结信号，可以由kill命令产生。与SIGKILL不同的是，SIGTERM信号可以被阻塞和终止，以便程序在退出前可以保存工作或清理临时文件等。
+
+docker stop 会先发出SIGTERM信号给进程，告诉进程即将会被关闭。在-t指定的等待时间过了之后，将会立即发出SIGKILL信号，直接关闭容器。
+docker kill 直接发出SIGKILL信号关闭容器。但也可以通过-s参数修改发出的信号。
+
+因此会发现在docker stop的等过过程中，如果终止docker stop的执行，容器最终没有被关闭。而docker kill几乎是立刻发生，无法撤销。
+
+此外还有些异常原因也会导致容器被关闭，比如docker daemon重启、容器内部进程运行发生错误等等“异常原因”。
+```
+
+#### 容器暂停  docker pause
+
+```
+作用：
+	暂停一个或多个处于运行状态的容器
+命令格式：
+	docker pause CONTAINER [CONTAINER...]
+命令参数(OPTIONS)：
+	无	
+```
+
+*注: 涨停也是一个特殊的运行状态*
+
+#### 容器取消暂停 docker unpause
+
+```
+作用：
+	取消一个或多个处于暂停状态的容器，恢复运行
+命令格式：
+	docker unpause CONTAINER [CONTAINER...]		
+命令参数(OPTIONS)：
+	无
+```
+
+*注: 暂停和取消暂停 都是只能运行一次, 重复运行会报错*
+
+```shell
+[root@izuf6csxy0jrgs3azvia67z ~]# docker ps -a
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS                  PORTS               NAMES
+f8b7611d03b8        centos              "python"            2 days ago          Up 10 hours (Paused)                        nervous_wiles
+f71a5c68f152        centos              "python"            2 days ago          Exited (0) 2 days ago                       kind_goldwasser
+[root@izuf6csxy0jrgs3azvia67z ~]# docker pause f8b7
+Error response from daemon: Container f8b7611d03b80c7709306035e4df0b87c63b8fbf9e1c0cb59fa9b62dbb133600 is already paused
+```
+
+
+
+#### 容器重启
+
+```
+作用：
+	重启一个或多个处于运行状态、暂停状态、关闭状态或者新建状态的容器
+	该命令相当于stop和start命令的结合
+命令格式：
+	docker restart [OPTIONS] CONTAINER [CONTAINER...]
+命令参数(OPTIONS)：
+	 -t, --time int   		重启前，等待的时间，单位秒(默认 10s) 
+				实则是关闭前等待的时间	
+```
+
+```shell
+docker restart <=> docker stop + docker start
+```
+
+
+
+#### 容器的详细信息
+
+```
+作用：
+	查看本地一个或多个容器的详细信息
+命令格式：
+	docker container inspect [OPTIONS] CONTAINER [CONTAINER...]
+      或者 docker inspect [OPTIONS] CONTAINER [CONTAINER...]
+命令参数(OPTIONS)：	
+	-f, --format string	利用特定Go语言的format格式输出结果
+	-s, --size		显示总大小
+```
+
+```shell
+[root@izuf6csxy0jrgs3azvia67z ~]# docker inspect f8
+[
+    {
+        "Id": "f8b7611d03b80c7709306035e4df0b87c63b8fbf9e1c0cb59fa9b62dbb133600",
+        "Created": "2019-03-10T13:27:48.925737681Z",
+        "Path": "python",
+        "Args": [],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 13875,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2019-03-12T03:57:58.638030916Z",
+            "FinishedAt": "2019-03-12T03:55:10.114967417Z"
+        },
+        "Image": "sha256:1e1148e4cc2c148c6890a18e3b2d2dde41a6745ceb4e5fe94a923d811bf82ddb",
+...
+...
+...
+State还可查看容器的状态
+[root@izuf6csxy0jrgs3azvia67z ~]# docker inspect -f "{{json .State.Running}}" f8
+true
+```
+
+#### 容器日志 docker logs
+
+```
+
+```
+
+```shell
+#显示的是   容器 COMMAND 产生的一些结果
+```
+
+```shell
+[root@izuf6csxy0jrgs3azvia67z ~]# docker ps -a
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS                  PORTS               NAMES
+1d3f38d39a95        centos              "python"            3 minutes ago       Up 3 minutes                                dreamy_lovelace
+f8b7611d03b8        centos              "python"            2 days ago          Up 10 hours                                 nervous_wiles
+f71a5c68f152        centos              "python"            2 days ago          Exited (0) 2 days ago                       kind_goldwasser
+[root@izuf6csxy0jrgs3azvia67z ~]# docker logs 1d
+Python 2.7.5 (default, Oct 30 2018, 23:45:53) 
+[GCC 4.8.5 20150623 (Red Hat 4.8.5-36)] on linux2
+Type "help", "copyright", "credits" or "license" for more information.
+```
+
+#### 容器重命名 docker rename
+
+```
+作用：
+	修改容器的名称
+命令格式：
+	docker rename CONTAINER NEW_NAME
+命令参数(OPTIONS)：	
+	无
+```
+
+```shell
+[root@izuf6csxy0jrgs3azvia67z ~]# docker ps -a
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS                  PORTS               NAMES
+1d3f38d39a95        centos              "python"            About an hour ago   Up About an hour                            dreamy_lovelace
+f8b7611d03b8        centos              "python"            2 days ago          Up 12 hours                                 nervous_wiles
+f71a5c68f152        centos              "python"            2 days ago          Exited (0) 2 days ago                       kind_goldwasser
+[root@izuf6csxy0jrgs3azvia67z ~]# docker rename 1d This
+[root@izuf6csxy0jrgs3azvia67z ~]# docker ps -a
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS                  PORTS               NAMES
+1d3f38d39a95        centos              "python"            About an hour ago   Up About an hour                            This
+f8b7611d03b8        centos              "python"            2 days ago          Up 12 hours                                 nervous_wiles
+f71a5c68f152        centos              "python"            2 days ago          Exited (0) 2 days ago                       kind_goldwasser
+```
+
+#### 容器连接 docker attach
+
+```
+作用：
+	将当前终端的STDIN、STDOUT、STDERR绑定到正在运行的容器的主进程上实现连接
+命令格式：
+	docker attach [OPTIONS] CONTAINER
+命令参数(OPTIONS)：	
+	--no-stdin             	不绑定STDIN
+```
+
+```shell
+[root@izuf6csxy0jrgs3azvia67z ~]# docker ps -a
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+[root@izuf6csxy0jrgs3azvia67z ~]# docker run -dti centos bash
+6113fc2dd14a609a8dff44a3a363037a1ea45ecd5173fc8c88d26a66d3c55cf3
+[root@izuf6csxy0jrgs3azvia67z ~]# docker ps -a
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+6113fc2dd14a        centos              "bash"              4 seconds ago       Up 4 seconds                            adoring_blackwell
+[root@izuf6csxy0jrgs3azvia67z ~]# docker attach 611
+#两次ps的的PID不同, 之前的ps -A执行结束, 所以第二次的ps就有新的PID
+[root@6113fc2dd14a /]# ps -A
+  PID TTY          TIME CMD
+    1 pts/0    00:00:00 bash
+   15 pts/0    00:00:00 ps
+[root@6113fc2dd14a /]# ps -A
+  PID TTY          TIME CMD
+    1 pts/0    00:00:00 bash
+   16 pts/0    00:00:00 ps
+
+#这里如果退出, 那么相应的也会退出该容器, 容器则变成关闭状态.
+[root@6113fc2dd14a /]# exit
+exit
+#想要再次连接则会报错:
+[root@izuf6csxy0jrgs3azvia67z ~]# docker attach 611
+You cannot attach to a stopped container, start it first
+[root@izuf6csxy0jrgs3azvia67z ~]# docker ps -a
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS                     PORTS               NAMES
+6113fc2dd14a        centos              "bash"              6 minutes ago       Exited (0) 2 minutes ago                       adoring_blackwel
+#而attach必须是 运行中的容器, 所以 需要先启动
+#进入Python终端
+[root@izuf6csxy0jrgs3azvia67z ~]# docker run -dti centos python
+e964d014521a36cb229e5e21dda0686a4cfed7e394509f45fe8989aac23c7cdc
+[root@izuf6csxy0jrgs3azvia67z ~]# docker ps -a 
+CONTAINER ID        IMAGE               COMMAND             CREATED              STATUS              PORTS               NAMES
+e964d014521a        centos              "python"            About a minute ago   Up About a minute                       friendly_mirzakhani
+6113fc2dd14a        centos              "bash"              14 minutes ago       Up About a minute                       adoring_blackwell
+[root@izuf6csxy0jrgs3azvia67z ~]# docker attach e96
+>>> print("hello world")
+hello world
+>>> quit()
+```
+
+```shell
+#attach 把当前终端的 标准输入, 标准输入, 标准错误流 和 当前容器终端的主进程联系起来. 即PID=1 的进程.
+#所以当attach之后会执行 COMMAND 命令, 该命令执行完, 则终端退出.
+```
+
+#### 容器中执行新命令  docker exec
+
+```
+作用：
+	在容器中运行一个命令
+命令格式：
+	docker exec [OPTIONS] CONTAINER COMMAND [ARG...]
+命令参数(OPTIONS)：	
+	-d, --detach               	后台运行命令
+	-i, --interactive		即使没连接容器，也将当前的STDIN绑定上
+	-t, --tty                  	分配一个虚拟终端
+	-w, --workdir string       	指定在容器中的工作目录
+	-e, --env list             	设置容器中运行时的环境变量
+```
+
+```shell
+[root@izuf6csxy0jrgs3azvia67z ~]# docker ps -a
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+[root@izuf6csxy0jrgs3azvia67z ~]# docker run -dti centos python
+f73f3758588ba82728a3b7645b1eed3e648ce5b110eeec19b548db909fa04ad6
+[root@izuf6csxy0jrgs3azvia67z ~]# docker ps -a
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+f73f3758588b        centos              "python"            9 seconds ago       Up 8 seconds                            modest_goldberg
+[root@izuf6csxy0jrgs3azvia67z ~]# docker exec f7 ps -A
+  PID TTY          TIME CMD
+    1 pts/0    00:00:00 python
+    6 ?        00:00:00 ps
+[root@izuf6csxy0jrgs3azvia67z ~]# docker exec f7 ps -A
+  PID TTY          TIME CMD
+    1 pts/0    00:00:00 python
+   11 ?        00:00:00 ps
+[root@izuf6csxy0jrgs3azvia67z ~]# docker exec f7 python
+[root@izuf6csxy0jrgs3azvia67z ~]# docker exec -ti f7 python
+Python 2.7.5 (default, Oct 30 2018, 23:45:53) 
+[GCC 4.8.5 20150623 (Red Hat 4.8.5-36)] on linux2
+Type "help", "copyright", "credits" or "license" for more information.
+>>> quit()
+[root@izuf6csxy0jrgs3azvia67z ~]# docker ps -a
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+f73f3758588b        centos              "python"            2 minutes ago       Up 2 minutes                            modest_goldberg
+```
+
+```
+#重点:
+#exec  和 attach区别在于不和主进程进行关联, 是以容器子进程的形式存在, 所以其运行不影响容器主进程. 执行结束也不会导致容器直接退出.
+而 docker logs 日志打印的只是主进程的日志, exec的日志是没法打印的.
+```
 
