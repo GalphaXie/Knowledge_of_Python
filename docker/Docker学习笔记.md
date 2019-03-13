@@ -964,3 +964,176 @@ f73f3758588b        centos              "python"            2 minutes ago       
 而 docker logs 日志打印的只是主进程的日志, exec的日志是没法打印的.
 ```
 
+### 第五章 容器与镜像
+
+```shell
+#引入, centos7的docker镜像默认是没有ifconfig模块,需要安装net-tools工具
+[root@izuf6csxy0jrgs3azvia67z ~]# docker ps -a
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+[root@izuf6csxy0jrgs3azvia67z ~]# docker run -dti centos bash
+a43634abeb56cd28ad5487807d2ec4aa02ef24a711b8e9c45252614f718c6622
+[root@izuf6csxy0jrgs3azvia67z ~]# docker ps -a
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+a43634abeb56        centos              "bash"              3 seconds ago       Up 3 seconds                            frosty_mclaren
+[root@izuf6csxy0jrgs3azvia67z ~]# docker exec a4 ifconfig
+OCI runtime exec failed: exec failed: container_linux.go:344: starting container process caused "exec: \"ifconfig\": executable file not found in $PATH": unknown
+[root@izuf6csxy0jrgs3azvia67z ~]# docker exec a4 yum install -y net-tools
+Loaded plugins: fastestmirror, ovl
+Determining fastest mirrors
+ * base: mirrors.aliyun.com
+ * extras: mirrors.aliyun.com
+ * updates: mirrors.aliyun.com
+Resolving Dependencies
+--> Running transaction check
+---> Package net-tools.x86_64 0:2.0-0.24.20131004git.el7 will be installed
+--> Finished Dependency Resolution
+
+Dependencies Resolved
+
+================================================================================
+ Package         Arch         Version                          Repository  Size
+================================================================================
+Installing:
+ net-tools       x86_64       2.0-0.24.20131004git.el7         base       306 k
+
+Transaction Summary
+================================================================================
+Install  1 Package
+
+Total download size: 306 k
+Installed size: 918 k
+Downloading packages:
+warning: /var/cache/yum/x86_64/7/base/packages/net-tools-2.0-0.24.20131004git.el7.x86_64.rpm: Header V3 RSA/SHA256 Signature, key ID f4a80eb5: NOKEY
+Public key for net-tools-2.0-0.24.20131004git.el7.x86_64.rpm is not installed
+Retrieving key from file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+Importing GPG key 0xF4A80EB5:
+ Userid     : "CentOS-7 Key (CentOS 7 Official Signing Key) <security@centos.org>"
+ Fingerprint: 6341 ab27 53d7 8a78 a7c2 7bb1 24c6 a8a7 f4a8 0eb5
+ Package    : centos-release-7-6.1810.2.el7.centos.x86_64 (@CentOS)
+ From       : /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+Running transaction check
+Running transaction test
+Transaction test succeeded
+Running transaction
+  Installing : net-tools-2.0-0.24.20131004git.el7.x86_64                    1/1 
+  Verifying  : net-tools-2.0-0.24.20131004git.el7.x86_64                    1/1 
+
+Installed:
+  net-tools.x86_64 0:2.0-0.24.20131004git.el7                                   
+
+Complete!
+[root@izuf6csxy0jrgs3azvia67z ~]# docker exec a4 ifconfig
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.17.0.2  netmask 255.255.0.0  broadcast 172.17.255.255
+        ether 02:42:ac:11:00:02  txqueuelen 0  (Ethernet)
+        RX packets 1264  bytes 9634846 (9.1 MiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 1037  bytes 67850 (66.2 KiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        loop  txqueuelen 1  (Local Loopback)
+        RX packets 0  bytes 0 (0.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 0  bytes 0 (0.0 B)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+```
+
+
+
+#### 容器提交 docker  commit
+
+```
+作用：
+	根据容器生成一个新的镜像(会保留原来容器和对原有容器进行的更改)
+命令格式：
+	docker commit [OPTIONS] CONTAINER [REPOSITORY[:TAG]]
+命令参数(OPTIONS)：
+	-a, --author string    	作者
+	-c, --change list      	为创建的镜像加入Dockerfile命令
+	-m, --message string   	提交信息，类似git commit -m
+	-p, --pause            	提交时暂停容器 (default true)	
+```
+
+```shell
+[root@izuf6csxy0jrgs3azvia67z ~]# docker commit -m "(export) install net-tools" a436 net-tools:v1.0
+sha256:311dc06b53aade01b986b9fdebbabde3de00facfb8633736274911046c108304
+[root@izuf6csxy0jrgs3azvia67z ~]# docker images
+REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+centos-net          v1.0                cf3acaf1acc4        10 hours ago        280MB
+centos              latest              1e1148e4cc2c        3 months ago        202MB
+
+```
+
+#### 容器导出  docker export
+
+```
+作用：
+	将容器当前的文件系统导出成一个tar文件
+命令格式：
+	docker export [OPTIONS] CONTAINER
+命令参数(OPTIONS)：
+	-o, --output string   		指定写入的文件，默认是STDOUT	
+```
+
+```shell
+[root@izuf6csxy0jrgs3azvia67z docker_demo]# docker export -o centos-net.tar f825
+[root@izuf6csxy0jrgs3azvia67z docker_demo]# ll
+total 744844
+-rw------- 1 root root 264616960 Mar 13 22:22 centos-net.tar
+-rw-r--r-- 1 root root 498098176 Mar 10 11:52 linux.tar
+```
+
+#### 容器打包的导入 docker import
+
+```
+作用：
+	从一个tar文件中导入内容创建一个镜像
+命令格式：
+	docker import [OPTIONS] file|URL|- [REPOSITORY[:TAG]]
+命令参数(OPTIONS)：
+	-c, --change list      	为创建的镜像加入Dockerfile命令
+	-m, --message string   	导入时，添加提交信息	
+```
+
+```shell
+[root@izuf6csxy0jrgs3azvia67z docker_demo]# docker import -h
+Flag shorthand -h has been deprecated, please use --help
+
+Usage:	docker import [OPTIONS] file|URL|- [REPOSITORY[:TAG]]
+
+Import the contents from a tarball to create a filesystem image
+
+Options:
+  -c, --change list      Apply Dockerfile instruction to the created image
+  -m, --message string   Set commit message for imported image
+[root@izuf6csxy0jrgs3azvia67z docker_demo]# docker import -m "(export) install net-tools" centos-net.tar centos-net2:v1.0
+sha256:c0ff4aa5865696bdd95809180676267f4683029d0dee258a3d2ca45c12a980b8
+[root@izuf6csxy0jrgs3azvia67z docker_demo]# docker images
+REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+centos-net2         v1.0                c0ff4aa58656        22 seconds ago      257MB
+centos-net          v1.0                cf3acaf1acc4        12 hours ago        280MB
+ubuntu              latest              47b19964fb50        5 weeks ago         88.1MB
+centos              latest              1e1148e4cc2c        3 months ago        202MB
+
+#docker commit 和 import 的区别:
+#commit保留了镜像的详细信息, 用的更多
+#import只保留了最后修改的综合的样子
+[root@izuf6csxy0jrgs3azvia67z docker_demo]# docker history centos
+IMAGE               CREATED             CREATED BY                                      SIZE                COMMENT
+1e1148e4cc2c        3 months ago        /bin/sh -c #(nop)  CMD ["/bin/bash"]            0B                  
+<missing>           3 months ago        /bin/sh -c #(nop)  LABEL org.label-schema.sc…   0B                  
+<missing>           3 months ago        /bin/sh -c #(nop) ADD file:6f877549795f4798a…   202MB               
+[root@izuf6csxy0jrgs3azvia67z docker_demo]# docker history centos-net:v1.0
+IMAGE               CREATED             CREATED BY                                      SIZE                COMMENT
+cf3acaf1acc4        12 hours ago        bash                                            78.5MB              install net-tools
+1e1148e4cc2c        3 months ago        /bin/sh -c #(nop)  CMD ["/bin/bash"]            0B                  
+<missing>           3 months ago        /bin/sh -c #(nop)  LABEL org.label-schema.sc…   0B                  
+<missing>           3 months ago        /bin/sh -c #(nop) ADD file:6f877549795f4798a…   202MB               
+[root@izuf6csxy0jrgs3azvia67z docker_demo]# docker history centos-net2:v1.0
+IMAGE               CREATED             CREATED BY          SIZE                COMMENT
+c0ff4aa58656        5 minutes ago                           257MB               (export) install net-tools
+
+```
+
