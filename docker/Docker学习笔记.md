@@ -1137,3 +1137,265 @@ c0ff4aa58656        5 minutes ago                           257MB               
 
 ```
 
+### 第六章 docker核心技术--网络管理
+
+#### 为什么需要docker网络管理
+
+```
+容器的网络默认与宿主机、与其他容器都是相互隔离。
+容器中可以运行一些网络应用(如nginx、web应用、数据库等)，如果要让外部也可以访问这些容器内运行的网络应用，那么就需要配置网络来实现。
+有可能有的需求下，容器不想让它的网络与宿主机、与其他容器隔离。
+有可能有的需求下，容器根本不需要网络。
+有可能有的需求下，容器需要更高的定制化网络（如定制特殊的集群网络、定制容器间的局域网）。
+有可能有的需求下， 容器数量特别多，体量很大的一系列容器的网络管理如何
+……
+
+因此容器的网络管理是非常重要的
+
+------------------
+容器网络管理:
+- 不设置隔离   => 性能最高
+自带5种网络驱动模式
+- 可以手动安装别的模式
+```
+
+
+
+#### docker网络默认5种驱动模式
+
+```
+Docker有五种网络驱动模式
+bridge network 模式（网桥）：默认的网络模式。类似虚拟机的nat模式
+host network 模式（主机）：容器与宿主机之间的网络无隔离，即容器直接使用宿主机网络
+None network 模式：容器禁用所有网络。
+Overlay network 模式（覆盖网络）： 利用VXLAN实现的bridge模式
+Macvlan network 模式：容器具备Mac地址，使其显示为网络上的物理设备
+```
+
+#### 查看网络 docker network ls
+
+```
+作用：
+	查看已经建立的网络对象
+命令格式：
+	docker network ls [OPTIONS]
+命令参数(OPTIONS)：
+	-f, --filter filter   		过滤条件(如 'driver=bridge’)
+	    --format string   	格式化打印结果
+	    --no-trunc        	不缩略显示
+	-q, --quiet          	 	只显示网络对象的ID
+注意：
+	默认情况下，docker安装完成后，会自动创建bridge、host、none三种网络驱动
+```
+
+```shell
+[root@izuf6csxy0jrgs3azvia67z ~]# docker network ls
+NETWORK ID          NAME                DRIVER              SCOPE
+6d052b504ac7        bridge              bridge              local
+a468c0a23faf        host                host                local
+47d7fe0d3f46        none                null                local
+[root@izuf6csxy0jrgs3azvia67z ~]# docker network ls -f 'driver=host'
+NETWORK ID          NAME                DRIVER              SCOPE
+a468c0a23faf        host                host                local
+```
+
+
+
+#### 创建网络 docker network
+
+```
+作用：
+	创建新的网络对象
+命令格式：
+	docker network create [OPTIONS] NETWORK
+命令参数(OPTIONS)：
+	-d, --driver string        		指定网络的驱动(默认 "bridge")
+	    --subnet strings       		指定子网网段(如192.168.0.0/16、172.88.0.0/24)
+	    --ip-range strings     		执行容器的IP范围，格式同subnet参数
+	    --gateway strings      		子网的IPv4 or IPv6网关，如(192.168.0.1)
+注意：
+	host和none模式网络只能存在一个
+	docker自带的overlay 网络创建依赖于docker swarm(集群负载均衡)服务
+	192.168.0.0/16 等于 192.168.0.0~192.168.255.255    192.168.8.0/24
+	172.88.0.0/24 等于 172.88.0.0~172.88.0.255
+```
+
+
+
+```shell
+Create a network
+
+Options:
+      --attachable           Enable manual container attachment
+      --aux-address map      Auxiliary IPv4 or IPv6 addresses used by Network driver (default map[])
+      --config-from string   The network from which copying the configuration
+      --config-only          Create a configuration only network
+  -d, --driver string        Driver to manage the Network (default "bridge")
+      --gateway strings      IPv4 or IPv6 Gateway for the master subnet
+      --ingress              Create swarm routing-mesh network
+      --internal             Restrict external access to the network
+      --ip-range strings     Allocate container ip from a sub-range
+      --ipam-driver string   IP Address Management Driver (default "default")
+      --ipam-opt map         Set IPAM driver specific options (default map[])
+      --ipv6                 Enable IPv6 networking
+      --label list           Set metadata on a network
+  -o, --opt map              Set driver specific options (default map[])
+      --scope string         Control the network's scope
+      --subnet strings       Subnet in CIDR format that represents a network segment
+[root@izuf6csxy0jrgs3azvia67z ~]# docker network create -d bridge my-bridge
+204abef6d8250b2e3d264ff00ca7844a34fb525c9f4bc0d6b609cd5658eb32b0
+[root@izuf6csxy0jrgs3azvia67z ~]# docker network ls
+NETWORK ID          NAME                DRIVER              SCOPE
+6d052b504ac7        bridge              bridge              local
+a468c0a23faf        host                host                local
+204abef6d825        my-bridge           bridge              local
+47d7fe0d3f46        none                null                local
+
+# docker默认的是 bridge
+[root@izuf6csxy0jrgs3azvia67z ~]# docker network create -d host my-bridge
+Error response from daemon: network with name my-bridge already exists
+[root@izuf6csxy0jrgs3azvia67z ~]# docker network create -d host my-bridge2
+Error response from daemon: only one instance of "host" network is allowed
+
+#依赖集群,需要先启动 swarm
+[root@izuf6csxy0jrgs3azvia67z ~]# docker network create -d overlay my-bridge2
+Error response from daemon: This node is not a swarm manager. Use "docker swarm init" or "docker swarm join" to connect this node to swarm and try again.
+
+# host 和 null 只能存在一个
+[root@izuf6csxy0jrgs3azvia67z ~]# docker network create -d null my-bridge2
+Error response from daemon: only one instance of "null" network is allowe
+```
+
+
+
+#### 网络删除 docker network rm
+
+```
+作用：
+	删除一个或多个网络
+命令格式：
+	docker network rm NETWORK [NETWORK...]
+命令参数(OPTIONS)：
+	无
+```
+
+```shell
+[root@izuf6csxy0jrgs3azvia67z ~]# docker network rm 204a
+204a
+[root@izuf6csxy0jrgs3azvia67z ~]# docker network ls
+NETWORK ID          NAME                DRIVER              SCOPE
+6d052b504ac7        bridge              bridge              local
+a468c0a23faf        host                host                local
+47d7fe0d3f46        none                null                local
+```
+
+
+
+#### 查看网络详细信息 docker network inspect
+
+```
+作用：
+	查看一个或多个网络的详细信息
+命令格式：
+	docker network inspect [OPTIONS] NETWORK [NETWORK...]
+      或者 docker inspect [OPTIONS] NETWORK [NETWORK...]
+命令参数(OPTIONS)：
+	-f, --format string   	根据format输出结果
+```
+
+```shell
+[root@izuf6csxy0jrgs3azvia67z ~]# docker network inspect -h
+Flag shorthand -h has been deprecated, please use --help
+
+Usage:	docker network inspect [OPTIONS] NETWORK [NETWORK...]
+
+Display detailed information on one or more networks
+
+Options:
+  -f, --format string   Format the output using the given Go template
+  -v, --verbose         Verbose output for diagnostics
+[root@izuf6csxy0jrgs3azvia67z ~]# docker inspect 6d05
+[
+    {
+        "Name": "bridge",
+        "Id": "6d052b504ac75a7f072529b0439f8f3b3d685a68334955bea3929515df71f639",
+        "Created": "2019-03-16T17:01:50.101348476+08:00",
+        "Scope": "local",
+        "Driver": "bridge",
+        "EnableIPv6": false,
+        "IPAM": {
+            "Driver": "default",
+            "Options": null,
+            "Config": [
+                {
+                    "Subnet": "172.17.0.0/16",
+                    "Gateway": "172.17.0.1"
+                }
+            ]
+        },
+        "Internal": false,
+        "Attachable": false,
+        "Ingress": false,
+        "ConfigFrom": {
+            "Network": ""
+        },
+        "ConfigOnly": false,
+        "Containers": {},
+        "Options": {
+            "com.docker.network.bridge.default_bridge": "true",
+            "com.docker.network.bridge.enable_icc": "true",
+            "com.docker.network.bridge.enable_ip_masquerade": "true",
+            "com.docker.network.bridge.host_binding_ipv4": "0.0.0.0",
+            "com.docker.network.bridge.name": "docker0",
+            "com.docker.network.driver.mtu": "1500"
+        },
+        "Labels": {}
+    }
+]
+[root@izuf6csxy0jrgs3azvia67z ~]# docker inspect -f "{{json IPAM.Config.Gateway}}" 6d05
+Template parsing error: template: :1: function "IPAM" not defined
+# 下面的Gateway不是一个对象    ---> 存疑
+[root@izuf6csxy0jrgs3azvia67z ~]# docker inspect -f "{{json .IPAM.Config.Gateway}}" 6d05
+Template parsing error: template: :1:12: executing "" at <.IPAM.Config.Gateway>: can't evaluate field Gateway in type interface {}
+[root@izuf6csxy0jrgs3azvia67z ~]# docker inspect -f "{{json .IPAM.Config}}" 6d05
+[{"Subnet":"172.17.0.0/16","Gateway":"172.17.0.1"}]
+```
+
+
+
+#### 使用网络 docker run --network
+
+*docker 的网络使用是基于 容器 的 , 所以使用的是 docker run 加 --network 选项的方式*
+
+```
+作用：
+	为启动的容器指定网络模式
+命令格式：
+	docker run/create --network NETWORK
+命令参数(OPTIONS)：
+	无
+注意：
+	默认情况下，docker创建或启动容器时，会默认使用名称为bridge的网络
+```
+
+```shell
+[root@izuf6csxy0jrgs3azvia67z ~]# docker network create -d bridge my-bridge
+fb089483b6b4f554580487bdcbf645e0f09272fb1b7313879f910302f1fcf96b
+[root@izuf6csxy0jrgs3azvia67z ~]# docker network ls
+NETWORK ID          NAME                DRIVER              SCOPE
+6d052b504ac7        bridge              bridge              local
+a468c0a23faf        host                host                local
+fb089483b6b4        my-bridge           bridge              local
+47d7fe0d3f46        none                null                local
+[root@izuf6csxy0jrgs3azvia67z ~]# docker run --network my-bridge -dti centos bash
+a0a310e8849e94147d508513af3ebaaee14c4d1d09639ca4186dac4d11ca6b2e
+[root@izuf6csxy0jrgs3azvia67z ~]# docker exec a0a3 ping baidu.com
+PING baidu.com (123.125.115.110) 56(84) bytes of data.
+64 bytes from 123.125.115.110 (123.125.115.110): icmp_seq=1 ttl=50 time=25.1 ms
+64 bytes from 123.125.115.110 (123.125.115.110): icmp_seq=2 ttl=50 time=25.1 ms
+64 bytes from 123.125.115.110 (123.125.115.110): icmp_seq=3 ttl=50 time=25.2 ms
+
+# 默认的网络是 bridge
+--network string                 Connect a container to a network (default "default")
+```
+
