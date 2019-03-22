@@ -1399,3 +1399,106 @@ PING baidu.com (123.125.115.110) 56(84) bytes of data.
 --network string                 Connect a container to a network (default "default")
 ```
 
+
+
+#### 网络连接和断开  docker network connect / disconnect
+
+```
+作用：
+	将指定容器与指定网络进行连接或者断开连接
+命令格式：
+	docker network connect [OPTIONS] NETWORK CONTAINER
+	docker network disconnect [OPTIONS] NETWORK CONTAINER
+命令参数(OPTIONS)：
+	-f, --force   		强制断开连接(用于disconnect)
+```
+
+```shell
+[root@izuf6csxy0jrgs3azvia67z ~]# docker inspect a0a3
+[
+    {
+...
+            "Networks": {
+                "bridge": {
+                    "IPAMConfig": {},
+                    "Links": null,
+                    "Aliases": [],
+                    "NetworkID": "6d052b504ac75a7f072529b0439f8f3b3d685a68334955bea3929515df71f639",
+                    "EndpointID": "c0baa058cc0efa0097abe7cbaf43b33d0e96faa1e27302d573447fc2613bf5fb",
+                    "Gateway": "172.17.0.1",
+                    "IPAddress": "172.17.0.2",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:ac:11:00:02",
+                    "DriverOpts": null
+                },
+                "my-bridge": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": [
+                        "a0a310e8849e"
+                    ],
+                    "NetworkID": "fb089483b6b4f554580487bdcbf645e0f09272fb1b7313879f910302f1fcf96b",
+                    "EndpointID": "69d79b6fdf55e689f71e0d4750a17d97d8a46b935a981359bb0f10319e148642",
+                    "Gateway": "172.20.0.1",
+                    "IPAddress": "172.20.0.2",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:ac:14:00:02",
+                    "DriverOpts": null
+                }
+            }
+        }
+    }
+]
+[root@izuf6csxy0jrgs3azvia67z ~]# docker network disconnect my-bridge a0a3
+[root@izuf6csxy0jrgs3azvia67z ~]# docker inspect a0a3
+[
+    {
+...
+"Networks": {
+                "bridge": {
+                    "IPAMConfig": {},
+                    "Links": null,
+                    "Aliases": [],
+                    "NetworkID": "6d052b504ac75a7f072529b0439f8f3b3d685a68334955bea3929515df71f639",
+                    "EndpointID": "c0baa058cc0efa0097abe7cbaf43b33d0e96faa1e27302d573447fc2613bf5fb",
+                    "Gateway": "172.17.0.1",
+                    "IPAddress": "172.17.0.2",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "02:42:ac:11:00:02",
+                    "DriverOpts": null
+                }
+            }
+        }
+    }
+]
+[root@izuf6csxy0jrgs3azvia67z ~]# docker network disconnect bridge a0a3
+[root@izuf6csxy0jrgs3azvia67z ~]# docker inspect a0a3
+[
+    {
+...
+            "Networks": {}
+        }
+    }
+]
+# 存在问题: connect|disconnect 不能用于 host 网络的驱动
+[root@izuf6csxy0jrgs3azvia67z ~]# docker network connect bridge a0a3
+[root@izuf6csxy0jrgs3azvia67z ~]# docker network connect host a0a3
+Error response from daemon: container cannot be disconnected from host network or connected to host network
+#docker 容器和网路连接不能同时存在 none 和 bridge
+[root@izuf6csxy0jrgs3azvia67z ~]# docker network connect none a0a3
+Error response from daemon: container cannot be connected to multiple networks with one of the networks in private (none) mode
+# 可以存在多个 bridge 桥接网络
+#其他还有 overlay  macvlan  
+```
+
+
+
