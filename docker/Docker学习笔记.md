@@ -1500,5 +1500,493 @@ Error response from daemon: container cannot be connected to multiple networks w
 #其他还有 overlay  macvlan  
 ```
 
+#### docker 网络模式简介
 
+<u>*此部分内容, 留待深入研究*</u>
+
+####  bridge 网络模式
+
+```
+特点：
+宿主机上需要单独的bridge网卡，如默认docker默认创建的docker0。
+容器之间、容器与主机之间的网络通信，是借助为每一个容器生成的一对veth pair虚拟网络设备对，进行通信的。一个在容器上，另一个在宿主机上。
+每创建一个基于bridge网络的容器，都会自动在宿主机上创建一个veth**虚拟网络设备。
+外部无法直接访问容器。需要建立端口映射才能访问。
+容器借由veth虚拟设备通过如docker0这种bridge网络设备进行通信。
+每一容器具有单独的IP
+```
+
+![bridge网络模式](./docker_img/bridge网络.png)
+
+#### bridge 网络模式 -  端口映射
+
+```
+作用：
+	启动的容器时，为容器进行端口映射
+命令格式：
+	docker run/create -P …
+      或者 docker run/create –p …
+命令参数(OPTIONS)：
+	-P, --publish-all		将容器内部所有暴露端口进行随机映射
+	-p, --publish list 	手动指定端口映射
+注意：
+	-p [HOST_IP]:[HOST_PORT]:CONTAINER_PORT
+	如：-p ::80		将容器的80端口随机(端口)映射到宿主机任意IP
+	       -p :8000:6379 	将容器的6379端口映射到宿主机任意IP的8000端口
+	       -p 192.168.5.1::3306	将容器的3306端口随机(端口)映射到宿主机的192.168.5.1IP上
+```
+
+#### host 网络模式 
+
+```
+特点：
+容器完全共享宿主机的网络。网络没有隔离。宿主机的网络就是容器的网络。
+容器、主机上的应用所使用的端口不能重复。例如：如果宿主机已经占用了8090端口，那么任何一个host模式的容器都不可以使用8090端口了；反之同理。
+外部可以直接访问容器，不需要端口映射。
+容器的IP就是宿主机的IP
+```
+
+![](.\docker_img\宿主机网络设备.png)
+
+#### 特殊的 host 网络模式 (Container 网络模式)
+
+```
+Container网络模式，其实就是容器共享其他容器的网络。
+相当于该容器,，在网络层面上，将其他容器作为“主机”。它们之间的网络没有隔离。
+这些容器之间的特性同host模式。
+使用方法：
+	Docker run/create --network container:CONTAINER …
+```
+
+![特殊的host网络模式](./docker_img/特殊的host网络模式.png)
+
+#### none 网络模式
+
+```
+特点：
+容器上没有网络，也无任何网络设备。
+如果需要使用网络，需要用户自行安装与配置。
+应用场景
+该模式适合需要高度定制网络的用户使用。
+```
+
+#### overlay 网络模式
+
+```
+Overlay 网络，也称为覆盖网络。
+Overlay 网络的实现方式和方案有多种。Docker自身集成了一种，基于VXLAN隧道技术实现。
+Overlay 网络主要用于实现跨主机容器之间的通信。
+应用场景：需要管理成百上千个跨主机的容器集群的网络时
+```
+
+![TCP/IP协议栈](./docker_img/TCP和IP协议栈.png)
+
+#### overlay 网络实现原理
+
+IP隧道网络原理
+
+![IP隧道网络](./docker_img/IP隧道原理.png)
+
+![overlay隧道原理](./docker_img/overlay原理.png)
+
+
+
+#### macvlan 网络模式
+
+```
+macvlan网络模式，最主要的特征就是他们的通信会直接基于mac地址进行转发。
+这时宿主机其实充当一个二层交换机。Docker会维护着一个MAC地址表，当宿主机网络收到一个数据包后，直接根据mac地址找到对应的容器，再把数据交给对应的容器。
+容器之间可以直接通过IP互通，通过宿主机上内建的虚拟网络设备（创建macvlan网络时自动创建），但与主机无法直接利用IP互通。
+应用场景：由于每个外来的数据包的目的mac地址就是容器的mac地址，这时每个容器对于外面网络来说就相当于一个真实的物理网络设备。因此当需要让容器来的网络看起来是一个真实的物理机时，使用macvlan模式
+```
+
+![macvlan网络模式](./docker_img/macvlan网络.png)
+
+
+
+
+
+### 第七章 Dokcer 核心技术 -- 数据卷
+
+#### 为什么使用数据卷
+
+```
+宿主机无法直接访问容器中的文件
+容器中的文件没有持久化，导致容器删除后，文件数据也随之消失
+容器之间也无法直接访问互相的文件
+为解决这些问题，docker加入了数据卷(volumes)机制，能很好解决上面问题，以实现：
+容器与主机之间、容器与容器之间共享文件
+容器中数据的持久化
+将容器中的数据备份、迁移、恢复等
+```
+
+#### 数据卷的特点
+
+```
+数据卷存在于宿主机的文件系统中，独立于容器，和容器的生命周期是分离的。
+数据卷可以目录也可以是文件，容器可以利用数据卷与宿主机进行数据共享，实现了容器间的数据共享和交换。
+容器启动初始化时，如果容器使用的镜像包含了数据，这些数据会拷贝到数据卷中。
+容器对数据卷的修改是实时进行的。
+数据卷的变化不会影响镜像的更新。数据卷是独立于联合文件系统，镜像是基于联合文件系统。镜像与数据卷之间不会有相互影响。
+```
+
+#### docker 数据卷管理
+
+#### docker 挂载容器数据卷的三种方式
+
+```
+- bind mounts：将宿主机上的一个文件或目录被挂载到容器上。
+- volumes：由Docker创建和管理。使用docker volume命令管理
+- tmpfs mounts：tmpfs 是一种基于内存的临时文件系统。tmpfs mounts 数据不会存储在磁盘上。
+```
+
+![docker 挂载容器数据卷的三种方式](./docker_img/docker挂载数据卷方式.png)
+
+
+
+#### bind mounts 方式挂载数据卷
+
+```
+利用docker run/create的参数为容器挂载数据卷
+用法：
+	方式一： -v, --volume参数
+	    	-v 宿主机文件或文件夹路径:容器中的文件或者文件夹路径
+	方式二：--mount参数
+	   	--mount type=bind, src=宿主机文件或文件夹路径, dst=容器中的文件或者文件夹路径
+	   	注意：src指定的文件和路径必须提前创建或存在
+```
+
+```shell
+[root@izuf6csxy0jrgs3azvia67z ~]# docker run -dti -v /root/home/d_dir:/root/c_dir centos
+949cd46f665a4bdeb404dd6d7e28350d91c019cbd702131ed5f1f913ec17899f
+[root@izuf6csxy0jrgs3azvia67z ~]# pwd
+/root
+[root@izuf6csxy0jrgs3azvia67z ~]# cd home/d_dir/
+[root@izuf6csxy0jrgs3azvia67z d_dir]# ls -a
+.  
+..
+[root@izuf6csxy0jrgs3azvia67z d_dir]# docker exec 949c touch /root/c_dir/test.txt
+[root@izuf6csxy0jrgs3azvia67z d_dir]# ll
+total 0
+-rw-r--r-- 1 root root 0 Mar 22 14:44 test.txt
+```
+
+**-v 和 --mount 方式的区别: 前者在src目录不存在的时候自动创建对应的目录而不会报错. 而 --mount 的src指定的目录必须存在;  同时前者是通过`:`来分隔, 后者是通过`k=v,` 来分割. **
+
+```shell
+[root@izuf6csxy0jrgs3azvia67z d_dir]# docker run -dti --mount type=bind,src=/root/home/mount_dir,dst=/root/c2_dir centos
+docker: Error response from daemon: invalid mount config for type "bind": bind source path does not exist: /root/home/mount_dir.
+See 'docker run --help'.
+[root@izuf6csxy0jrgs3azvia67z d_dir]# cd ~
+[root@izuf6csxy0jrgs3azvia67z ~]# pwd
+/root
+[root@izuf6csxy0jrgs3azvia67z ~]# cd home/
+[root@izuf6csxy0jrgs3azvia67z home]# mkdir mount_dir
+[root@izuf6csxy0jrgs3azvia67z home]# docker run -dti --mount type=bind,src=/root/home/mount_dir,dst=/root/c2_dir centos
+fae6aa9af6149691fce728817810c5da133975d1ec192477352a92fe5468afea
+[root@izuf6csxy0jrgs3azvia67z home]# docker exec fae6 touch /root/c2_dir/test2.txt
+[root@izuf6csxy0jrgs3azvia67z home]# ll
+total 8
+drwxr-xr-x 2 root root 4096 Mar 22 14:44 d_dir
+drwxr-xr-x 2 root root 4096 Mar 22 14:50 mount_dir
+[root@izuf6csxy0jrgs3azvia67z home]# cd mount_dir/
+[root@izuf6csxy0jrgs3azvia67z mount_dir]# ll
+total 0
+-rw-r--r-- 1 root root 0 Mar 22 14:50 test2.txt
+```
+
+
+
+#### volumes方式挂载数据卷
+
+> volumes方式挂载数据卷 相当于 对 bind方式的 进一步封装, 默认`src=/var/lib/docker/volumes/volume_name`, 
+
+```
+利用docker run/create为容器挂载数据卷
+用法：
+	方式一： -v, --volume参数
+	    	-v VOLUME-NAME:容器中的文件或者文件夹路径
+	方式二：--mount 参数
+		--mount type=volume, src=VOLUME-NAME, dst=容器中的文件或者文件夹路径
+volume对象管理：
+	docker volume 命令管理volume数据卷对象
+	docker volume create		创建数据卷对象
+	docker volume inspect		查看数据卷详细信息
+	docker volume ls			查看已创建的数据卷对象
+	docker volume prune		删除未被使用的数据卷对象
+	docker volume rm		删除一个或多个数据卷对象
+```
+
+```shell
+[root@izuf6csxy0jrgs3azvia67z volumes]# docker volume -h
+Flag shorthand -h has been deprecated, please use --help
+
+Usage:	docker volume COMMAND
+
+Manage volumes
+
+Commands:
+  create      Create a volume
+  inspect     Display detailed information on one or more volumes
+  ls          List volumes
+  prune       Remove all unused local volumes
+  rm          Remove one or more volumes
+
+Run 'docker volume COMMAND --help' for more information on a command.
+[root@izuf6csxy0jrgs3azvia67z volumes]# docker volume create -h
+Flag shorthand -h has been deprecated, please use --help
+
+Usage:	docker volume create [OPTIONS] [VOLUME]
+
+Create a volume
+
+Options:
+  -d, --driver string   Specify volume driver name (default "local")
+      --label list      Set metadata for a volume
+  -o, --opt map         Set driver specific options (default map[])
+[root@izuf6csxy0jrgs3azvia67z volumes]# docker volume create volume-1
+volume-1
+[root@izuf6csxy0jrgs3azvia67z volumes]# docker volume ls
+DRIVER              VOLUME NAME
+local               e0a05aa123e7b787769af6cee9cb9f0b26bc0b4299d4045eacd2251f855e07d5
+local               volume-1
+[root@izuf6csxy0jrgs3azvia67z volumes]# docker volume inspect -h
+Flag shorthand -h has been deprecated, please use --help
+
+Usage:	docker volume inspect [OPTIONS] VOLUME [VOLUME...]
+
+Display detailed information on one or more volumes
+
+Options:
+  -f, --format string   Format the output using the given Go template
+[root@izuf6csxy0jrgs3azvia67z volumes]# docker volume inspect volume-1
+[
+    {
+        "CreatedAt": "2019-03-22T15:58:29+08:00",
+        "Driver": "local",
+        "Labels": {},
+        "Mountpoint": "/var/lib/docker/volumes/volume-1/_data",
+        "Name": "volume-1",
+        "Options": {},
+        "Scope": "local"
+    }
+]
+[root@izuf6csxy0jrgs3azvia67z volumes]# ll /var/lib/docker/volumes/volume-1/_data
+total 0
+[root@izuf6csxy0jrgs3azvia67z volumes]# docker run -dti -v volume-2:/root/c3_dir centos
+70e105ea449fc28edc2d44eb8922882938fa4138f952717aa462acedbe8627c6
+[root@izuf6csxy0jrgs3azvia67z volumes]# docker volume ls
+DRIVER              VOLUME NAME
+local               e0a05aa123e7b787769af6cee9cb9f0b26bc0b4299d4045eacd2251f855e07d5
+local               volume-1
+local               volume-2
+
+# docker voluem对象 的管理命令: create ls inspect prune rm 等.
+[root@izuf6csxy0jrgs3azvia67z volumes]# docker volume prune -h
+Flag shorthand -h has been deprecated, please use --help
+
+Usage:	docker volume prune [OPTIONS]
+
+Remove all unused local volumes
+
+Options:
+      --filter filter   Provide filter values (e.g. 'label=<label>')
+  -f, --force           Do not prompt for confirmation
+[root@izuf6csxy0jrgs3azvia67z volumes]# docker volume ls
+DRIVER              VOLUME NAME
+local               e0a05aa123e7b787769af6cee9cb9f0b26bc0b4299d4045eacd2251f855e07d5
+local               volume-1
+local               volume-2
+[root@izuf6csxy0jrgs3azvia67z volumes]# docker volume ls
+DRIVER              VOLUME NAME
+local               e0a05aa123e7b787769af6cee9cb9f0b26bc0b4299d4045eacd2251f855e07d5
+local               volume-1
+local               volume-2
+[root@izuf6csxy0jrgs3azvia67z volumes]# docker ps -a
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+70e105ea449f        centos              "/bin/bash"         7 minutes ago       Up 7 minutes                            pedantic_easley
+fae6aa9af614        centos              "/bin/bash"         About an hour ago   Up About an hour                        awesome_cartwright
+949cd46f665a        centos              "/bin/bash"         About an hour ago   Up About an hour                        xenodochial_bhaskara
+[root@izuf6csxy0jrgs3azvia67z volumes]# docker stop -t 0 70e1
+70e1
+[root@izuf6csxy0jrgs3azvia67z volumes]# docker ps -a
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS                       PORTS               NAMES
+70e105ea449f        centos              "/bin/bash"         7 minutes ago       Exited (137) 2 seconds ago                       pedantic_easley
+fae6aa9af614        centos              "/bin/bash"         About an hour ago   Up About an hour                                 awesome_cartwright
+949cd46f665a        centos              "/bin/bash"         About an hour ago   Up About an hour                                 xenodochial_bhaskara
+[root@izuf6csxy0jrgs3azvia67z volumes]# docker volume prune -h
+Flag shorthand -h has been deprecated, please use --help
+
+Usage:	docker volume prune [OPTIONS]
+
+Remove all unused local volumes
+
+Options:
+      --filter filter   Provide filter values (e.g. 'label=<label>')
+  -f, --force           Do not prompt for confirmation
+[root@izuf6csxy0jrgs3azvia67z volumes]# docker volume prune
+WARNING! This will remove all local volumes not used by at least one container.
+Are you sure you want to continue? [y/N] y
+Deleted Volumes:
+e0a05aa123e7b787769af6cee9cb9f0b26bc0b4299d4045eacd2251f855e07d5
+volume-1
+
+Total reclaimed space: 0B
+[root@izuf6csxy0jrgs3azvia67z volumes]# docker volume ls
+DRIVER              VOLUME NAME
+local               volume-2
+```
+
+#### tmpfs mount 方式挂载数据卷
+
+*基于内存的临时文件系统*
+
+```
+利用docker run/create为容器挂载数据卷
+用法：
+	--mount type=tmpfs, dst=PATH
+```
+
+```shell
+[root@izuf6csxy0jrgs3azvia67z volumes]# docker run -dti --mount type=tmpfs,dst=/root/c_dir centos
+7b05fc9bef6ddf97e3484309ce2f76d1b3c9ec457cc55f9030f3fedba618a5af
+# 相比之前区别:只是存在内存中, 所以不会有 src 参数, 不再能使用 -v 的方式挂载
+# 但是仍然可以算作一种持久化的存储
+```
+
+#### 共享其他容器的数据卷 –- 数据卷容器
+
+```
+利用docker run/create 的--volumes-from参数指定数据卷容器
+用法：
+	docker run/create --volumes-from CONTAINER
+```
+
+```shell
+[root@izuf6csxy0jrgs3azvia67z volumes]# docker run -dti --mount type=volume,src=volume-test,dst=/root/c_dir centos
+6203958a862d42ea86baaca3767f104300347947110811b69efe27e939468619
+[root@izuf6csxy0jrgs3azvia67z volumes]# docker inspect volume-test
+[
+    {
+        "CreatedAt": "2019-03-22T16:24:04+08:00",
+        "Driver": "local",
+        "Labels": null,
+        "Mountpoint": "/var/lib/docker/volumes/volume-test/_data",
+        "Name": "volume-test",
+        "Options": null,
+        "Scope": "local"
+    }
+]
+[root@izuf6csxy0jrgs3azvia67z volumes]# docker images
+REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+redis               latest              4161e91dcc29        2 days ago          95MB
+centos-net2         v1.0                c0ff4aa58656        8 days ago          257MB
+centos-net          v1.0                cf3acaf1acc4        9 days ago          280MB
+ubuntu              latest              47b19964fb50        6 weeks ago         88.1MB
+centos              latest              1e1148e4cc2c        3 months ago        202MB
+[root@izuf6csxy0jrgs3azvia67z volumes]# cd /var/lib/docker/volumes/volume-test/_data/
+[root@izuf6csxy0jrgs3azvia67z _data]# ll
+total 0
+[root@izuf6csxy0jrgs3azvia67z _data]# docker exec 6203958a touch /root/c_dir/test_txt
+[root@izuf6csxy0jrgs3azvia67z _data]# ll
+total 0
+-rw-r--r-- 1 root root 0 Mar 22 16:29 test_txt
+```
+
+#### Docker 数据卷的注意事项
+
+```
+Docker的数据卷更多会是使用volumes方式来进行使用。使用时需注意：
+如果挂载一个空的数据卷到容器中的一个非空目录中，那么这个目录下的文件会被复制到数据卷中。
+如果挂载一个非空的数据卷到容器中的一个目录中，那么容器中的目录中会显示数据卷中的数据。如果原来容器中的目录中有数据，那么这些原始数据会被隐藏掉。
+这两个规则都非常重要，灵活利用第一个规则可以帮助我们初始化数据卷中的内容。掌握第二个规则可以保证挂载数据卷后的数据总是你期望的结果。
+```
+
+**注意: 规则二中容器的数据只是被隐藏, 并不是被删除...**
+
+**规则一**
+
+```shell
+[root@izuf6csxy0jrgs3azvia67z _data]# docker run -dti centos bash
+5be45e8327f5515e8684e02c06ef41dc3171e77e9273a25efa8b9e527250f570
+[root@izuf6csxy0jrgs3azvia67z _data]# docker ps -a
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+5be45e8327f5        centos              "bash"              4 seconds ago       Up 4 seconds                            hardcore_agnesi
+[root@izuf6csxy0jrgs3azvia67z _data]# docker exec 5be4 ls /run
+console
+cryptsetup
+faillock
+lock
+log
+sepermit
+setrans
+systemd
+user
+utmp
+[root@izuf6csxy0jrgs3azvia67z _data]# docker run -dti --mount type=volume,src=test-name,dst=/run centos
+07582733077ce81feeb32ac095cf2fd9dca9def23431bdb212ec882d9ceb1b17
+[root@izuf6csxy0jrgs3azvia67z _data]# docker volume ls
+DRIVER              VOLUME NAME
+local               test-name
+[root@izuf6csxy0jrgs3azvia67z _data]# docker inspect test-name
+[
+    {
+        "CreatedAt": "2019-03-22T17:13:55+08:00",
+        "Driver": "local",
+        "Labels": null,
+        "Mountpoint": "/var/lib/docker/volumes/test-name/_data",
+        "Name": "test-name",
+        "Options": null,
+        "Scope": "local"
+    }
+]
+[root@izuf6csxy0jrgs3azvia67z _data]# ls /var/lib/docker/volumes/test-name/_data
+console  cryptsetup  faillock  lock  log  sepermit  setrans  systemd  user  utmp
+[root@izuf6csxy0jrgs3azvia67z _data]# docker exec 5be4 ls /run
+console
+cryptsetup
+faillock
+lock
+log
+sepermit
+setrans
+systemd
+user
+utmp
+```
+
+**规则二**
+
+```shell
+[root@izuf6csxy0jrgs3azvia67z _data]# docker volume ls
+DRIVER              VOLUME NAME
+local               test-name
+[root@izuf6csxy0jrgs3azvia67z _data]# docker run -dti --mount type=volume,src=test-name,dst=/root/test_dir centos
+532743b2ee6e399c29cd12b11d7946994ba965a75e0bffe36f9b2e4f8c7fc1fe
+[root@izuf6csxy0jrgs3azvia67z _data]# docker exec 5327 ls /root/test_dir 
+console
+cryptsetup
+faillock
+lock
+log
+sepermit
+setrans
+systemd
+user
+utmp
+[root@izuf6csxy0jrgs3azvia67z _data]# docker run -dti --mount type=volume,src=test-name,dst=/root/ centos
+bc5e66b44e1c9f8c3f2bf6826f9117a7cfad55e538a6908c5890772bceb91ec6
+# 这里 /root 目录已经不是之前展示的样子了. 进行了 "隐藏和覆盖"
+[root@izuf6csxy0jrgs3azvia67z _data]# docker exec bc5e ls /root
+console
+cryptsetup
+faillock
+lock
+log
+sepermit
+setrans
+systemd
+user
+utmp
+```
 
