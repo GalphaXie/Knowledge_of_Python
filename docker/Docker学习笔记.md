@@ -1990,3 +1990,415 @@ user
 utmp
 ```
 
+### 第八章 Docker核心技术 -- 仓库
+
+#### docker 私有仓库搭建
+
+> - registry 本质上是一个镜像, 所以我们会使用 pull 方法
+>
+> - --restart always 用于在我们**重启docker 服务**的时候,  **容器不会退出.**
+> - -p ​:port:​5000  registry 服务一般默认是 **5000**
+
+```
+第一步：在需要搭建仓库的服务器上安装docker。
+第二步：在服务器上，从docker hub下载registry仓库
+	docker pull registry
+第三步：在服务器上，启动仓库
+	docker run -d -ti --restart always\
+			--name my-registry\
+			-p 8000:5000\
+			-v /my-registry/registry:/var/lib/registry\
+ 	registry
+	注意：registry内部对外开放端口是5000。默认情况下，会镜像存放于容器内的/var/lib/registry(官网Dockerfile中查看)目录下，这样如果容器被删除，则存放于容器中的镜像也会丢失。
+
+本地利用curl 服务器IP:8000/v2/_catalog  查看当前仓库中的存放的镜像列表。（注意打开8000端口访问)
+```
+
+```shell
+[root@izuf6csxy0jrgs3azvia67z ~]# docker version
+Client:
+ Version:           18.09.3
+ API version:       1.39
+ Go version:        go1.10.8
+ Git commit:        774a1f4
+ Built:             Thu Feb 28 06:33:21 2019
+ OS/Arch:           linux/amd64
+ Experimental:      false
+
+Server: Docker Engine - Community
+ Engine:
+  Version:          18.09.3
+  API version:      1.39 (minimum version 1.12)
+  Go version:       go1.10.8
+  Git commit:       774a1f4
+  Built:            Thu Feb 28 06:02:24 2019
+  OS/Arch:          linux/amd64
+  Experimental:     false
+[root@izuf6csxy0jrgs3azvia67z ~]# docker pull registry
+Using default tag: latest
+latest: Pulling from library/registry
+c87736221ed0: Pull complete 
+1cc8e0bb44df: Pull complete 
+54d33bcb37f5: Pull complete 
+e8afc091c171: Pull complete 
+b4541f6d3db6: Pull complete 
+Digest: sha256:3b00e5438ebd8835bcfa7bf5246445a6b57b9a50473e89c02ecc8e575be3ebb5
+Status: Downloaded newer image for registry:latest
+[root@izuf6csxy0jrgs3azvia67z ~]# docker run -dti --restart always --name my-registry -p :4000:5000 -v /root/home/docker_demo/registry:/var/lib/registry registry
+9158ebfce55ceba53a886d995eb574899b354a0fed1a023b1947958f2450299e
+[root@izuf6csxy0jrgs3azvia67z ~]# docker ps -a
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                    NAMES
+9158ebfce55c        registry            "/entrypoint.sh /etc…"   7 seconds ago       Up 7 seconds        0.0.0.0:4000->5000/tcp   my-registry
+[root@izuf6csxy0jrgs3azvia67z ~]# curl 127.0.0.1:4000/v2/_catalog
+{"repositories":[]}
+#还可以通过浏览器访问
+```
+
+#### 私有仓库 -- 上传、下载镜像
+
+> - 必须按照规范`docker tag IMAGE ip:port/image_name` 来修改名字才能完成上传, 其中**端口**是之前进行映射的 服务器端口4000
+> - HTTPS 和 HTTP
+
+```
+第一步：利用docker tag重命名需要上传的镜像
+	docker tag IMAGE 服务器IP:端口/IMAGE_NAME
+第二步：利用docker push上传刚刚重命名的镜像
+	docker push 服务器IP:端口/centos
+
+注意：
+	必须重命名为服务器IP:端口/IMAGE_NAME
+	如果push出现了类似https的错误那么需要往配置文件/etc/docker/daemon.json里添加：”insecure-registries”:[“服务器IP:端口”]  
+	然后重启docker。
+
+```
+
+```shell
+[root@izuf6csxy0jrgs3azvia67z ~]# docker tag centos 47.101.212.36:4000/centos-latest
+[root@izuf6csxy0jrgs3azvia67z ~]# docker  images
+REPOSITORY                         TAG                 IMAGE ID            CREATED             SIZE
+redis                              latest              4161e91dcc29        3 days ago          95MB
+centos-net                         v1.0                cf3acaf1acc4        10 days ago         280MB
+registry                           latest              f32a97de94e1        2 weeks ago         25.8MB
+ubuntu                             latest              47b19964fb50        6 weeks ago         88.1MB
+47.101.212.36:4000/centos-latest   latest              1e1148e4cc2c        3 months ago        202MB
+centos                             latest              1e1148e4cc2c        3 months ago        202MB
+[root@izuf6csxy0jrgs3azvia67z ~]# docker push 47.101.212.36:4000/centos-latest
+The push refers to repository [47.101.212.36:9092/centos-latest]
+Get https://47.101.212.36:9092/v2/: http: server gave HTTP response to HTTPS client
+[root@izuf6csxy0jrgs3azvia67z ~]# vim /etc/docker/daemon.json 
+[root@izuf6csxy0jrgs3azvia67z ~]# service docker restart
+Redirecting to /bin/systemctl restart docker.service
+[root@izuf6csxy0jrgs3azvia67z ~]# docker push 47.101.212.36:4000/centos-latest
+The push refers to repository [47.101.212.36:9092/centos-latest]
+071d8bd76517: Pushed 
+latest: digest: sha256:365fc7f33107869dfcf2b3ba220ce0aa42e16d3f8e8b3c21d72af1ee622f0cf0 size: 529
+[root@izuf6csxy0jrgs3azvia67z ~]# curl 127.0.0.1:9092/v2/_catalog
+{"repositories":["centos-latest"]}
+[root@izuf6csxy0jrgs3azvia67z ~]# docker pull 47.101.212.36:4000/centos-latest
+
+[root@izuf6csxy0jrgs3azvia67z ~]# docker images
+REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+redis               latest              4161e91dcc29        3 days ago          95MB
+centos-net          v1.0                cf3acaf1acc4        10 days ago         280MB
+registry            latest              f32a97de94e1        2 weeks ago         25.8MB
+ubuntu              latest              47b19964fb50        6 weeks ago         88.1MB
+centos              latest              1e1148e4cc2c        3 months ago        202MB
+[root@izuf6csxy0jrgs3azvia67z ~]# docker pull 47.101.212.36:9092/centos-latest
+Using default tag: latest
+latest: Pulling from centos-latest
+Digest: sha256:365fc7f33107869dfcf2b3ba220ce0aa42e16d3f8e8b3c21d72af1ee622f0cf0
+Status: Downloaded newer image for 47.101.212.36:9092/centos-latest:latest
+[root@izuf6csxy0jrgs3azvia67z ~]# docker images
+REPOSITORY                         TAG                 IMAGE ID            CREATED             SIZE
+redis                              latest              4161e91dcc29        3 days ago          95MB
+centos-net                         v1.0                cf3acaf1acc4        10 days ago         280MB
+registry                           latest              f32a97de94e1        2 weeks ago         25.8MB
+ubuntu                             latest              47b19964fb50        6 weeks ago         88.1MB
+47.101.212.36:9092/centos-latest   latest              1e1148e4cc2c        3 months ago        202MB
+centos                             latest              1e1148e4cc2c        3 months ago        202MB
+```
+
+
+
+#### 搭建带认证私有仓库(一)
+
+```
+在服务器上：
+	第一步：删除先前创建的无认证的仓库容器
+		docker rm -f my-registry
+	第二步：创建存放认证用户名和密码的文件：
+		mkdir /my-registry/auth -p
+	第三步：创建密码验证文件。注意将将USERNAME和PASSWORD替换为设置的用户名和密码
+		docker run --entrypoint htpasswd registry -Bbn USERNAME PASSWORD > /my-registry/auth/htpasswd
+	第四步：重新启动仓库镜像
+docker run -d -p 8000:5000 --restart=always --name docker-registry \
+-v /my-registry/registry:/var/lib/registry \
+-v /my-registry/auth:/auth \
+-e "REGISTRY_AUTH=htpasswd" \
+-e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm" \
+-e "REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd" \
+registry
+```
+
+```shell
+[root@izuf6csxy0jrgs3azvia67z docker_demo]# mkdri /root/home/auth -p
+-bash: mkdri: command not found
+[root@izuf6csxy0jrgs3azvia67z docker_demo]# mkdir /root/home/auth -p
+[root@izuf6csxy0jrgs3azvia67z docker_demo]# ls /root/home/
+auth  d_dir  docker_demo  mount_dir
+[root@izuf6csxy0jrgs3azvia67z docker_demo]# docker run --entrypoint htpasswd registry -Bbn testun testpw > /root/home/auth/htpasswd[root@izuf6csxy0jrgs3azvia67z docker_demo]# ls /root/home/auth/
+htpasswd
+[root@izuf6csxy0jrgs3azvia67z docker_demo]# vim /root/home/auth/htpasswd 
+[root@izuf6csxy0jrgs3azvia67z docker_demo]# docker run -d -p 9092:5000 --restart always --name docker-register -v /root/home/docker_demo/registry:/var/lib/registry -v /root/home/auth:/auth -e "REGISTRY_AUTH=htpasswd" -e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm" -e "REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd" registry
+069dfeded84ce8bd09ac976cff68a18bd932952b436897248bcd7cdd70e516d5
+[root@izuf6csxy0jrgs3azvia67z docker_demo]# docker ps -a
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS                     PORTS                    NAMES
+069dfeded84c        registry            "/entrypoint.sh /etc…"   7 seconds ago       Up 6 seconds               0.0.0.0:9092->5000/tcp   docker-register
+25bb71d41e9d        registry            "htpasswd -Bbn testu…"   3 minutes ago       Exited (0) 3 minutes ago                            peaceful_einstein
+[root@izuf6csxy0jrgs3azvia67z docker_demo]# docker ps -a
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS                     PORTS                    NAMES
+069dfeded84c        registry            "/entrypoint.sh /etc…"   12 seconds ago      Up 11 seconds              0.0.0.0:9092->5000/tcp   docker-register
+25bb71d41e9d        registry            "htpasswd -Bbn testu…"   3 minutes ago       Exited (0) 3 minutes ago                            peaceful_einstein
+
+```
+
+#### 带认证的私有仓库 -- 上传 下载镜像
+
+```
+在本地机器上：
+	第一步：首先登录到服务器
+		docker login -u username -p password 47.94.153.230:8000
+	第二步：然后执行pull或者push命令	第三步：操作完毕后，可以退出登录
+		docker logout 47.94.153.230:8000
+这是如果想查看仓库中已有的镜像，那么需要进行http验证才可以。可以直接借助浏览器访问47.94.153.230:8000/v2/_catalog就可以访问了
+
+注意这里：47.94.153.230指服务器IP
+```
+
+```shell
+[root@izuf6csxy0jrgs3azvia67z docker_demo]# docker ps -a
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS                     PORTS               
+069dfeded84c        registry            "/entrypoint.sh /etc…"   12 seconds ago      Up 11 seconds              0.0.0.0:9092->5000/t
+25bb71d41e9d        registry            "htpasswd -Bbn testu…"   3 minutes ago       Exited (0) 3 minutes ago                       
+[root@izuf6csxy0jrgs3azvia67z docker_demo]# docker login -u testun -p testpw 47.101.212.36:9092
+WARNING! Using --password via the CLI is insecure. Use --password-stdin.
+WARNING! Your password will be stored unencrypted in /root/.docker/config.json.
+Configure a credential helper to remove this warning. See
+https://docs.docker.com/engine/reference/commandline/login/#credentials-store
+
+Login Succeeded
+[root@izuf6csxy0jrgs3azvia67z docker_demo]# docker images
+REPOSITORY                         TAG                 IMAGE ID            CREATED             SIZE
+redis                              latest              4161e91dcc29        3 days ago          95MB
+centos-net                         v1.0                cf3acaf1acc4        10 days ago         280MB
+registry                           latest              f32a97de94e1        2 weeks ago         25.8MB
+ubuntu                             latest              47b19964fb50        6 weeks ago         88.1MB
+47.101.212.36:9092/centos-latest   latest              1e1148e4cc2c        3 months ago        202MB
+centos                             latest              1e1148e4cc2c        3 months ago        202MB
+[root@izuf6csxy0jrgs3azvia67z docker_demo]# docker pull 47.101.212.36:9092/centos-latest
+Using default tag: latest
+latest: Pulling from centos-latest
+Digest: sha256:365fc7f33107869dfcf2b3ba220ce0aa42e16d3f8e8b3c21d72af1ee622f0cf0
+Status: Image is up to date for 47.101.212.36:9092/centos-latest:latest
+[root@izuf6csxy0jrgs3azvia67z docker_demo]# curl 127.0.0.1:9092/v2/_catalog
+{"errors":[{"code":"UNAUTHORIZED","message":"authentication required","detail":[{"Type":"registry","Class":"","Name":"catalog","Action":"*"}]}]}
+[root@izuf6csxy0jrgs3azvia67z docker_demo]# docker images
+REPOSITORY                         TAG                 IMAGE ID            CREATED             SIZE
+redis                              latest              4161e91dcc29        3 days ago          95MB
+centos-net                         v1.0                cf3acaf1acc4        10 days ago         280MB
+registry                           latest              f32a97de94e1        2 weeks ago         25.8MB
+ubuntu                             latest              47b19964fb50        6 weeks ago         88.1MB
+47.101.212.36:9092/centos-latest   latest              1e1148e4cc2c        3 months ago        202MB
+centos                             latest              1e1148e4cc2c        3 months ago        202MB
+[root@izuf6csxy0jrgs3azvia67z docker_demo]# docker rmi 47.101.212.36:9092/centos-latest
+Untagged: 47.101.212.36:9092/centos-latest:latest
+Untagged: 47.101.212.36:9092/centos-latest@sha256:365fc7f33107869dfcf2b3ba220ce0aa42e16d3f8e8b3c21d72af1ee622f0cf0
+[root@izuf6csxy0jrgs3azvia67z docker_demo]# docker pull 47.101.212.36:9092/centos-latest
+Using default tag: latest
+latest: Pulling from centos-latest
+Digest: sha256:365fc7f33107869dfcf2b3ba220ce0aa42e16d3f8e8b3c21d72af1ee622f0cf0
+Status: Downloaded newer image for 47.101.212.36:9092/centos-latest:latest
+[root@izuf6csxy0jrgs3azvia67z docker_demo]# docker images
+REPOSITORY                         TAG                 IMAGE ID            CREATED             SIZE
+redis                              latest              4161e91dcc29        3 days ago          95MB
+centos-net                         v1.0                cf3acaf1acc4        10 days ago         280MB
+registry                           latest              f32a97de94e1        2 weeks ago         25.8MB
+ubuntu                             latest              47b19964fb50        6 weeks ago         88.1MB
+47.101.212.36:9092/centos-latest   latest              1e1148e4cc2c        3 months ago        202MB
+centos                             latest              1e1148e4cc2c        3 months ago        202M
+```
+
+浏览器展示如下:
+
+![](./docker_img/认证私有仓库展示.png)
+
+*注: 还会出现 弹窗 来提示输入用户名和密码*
+
+#### 总结:
+
+- 小型的项目 和 不愿意接收三方服务的 项目适合搭建私有仓库
+- 通常情况下, 更多的时候是使用   cloud 技术, 即后面学的  dockerfile
+
+
+
+### 第九章 Docker核心技术 -- Dockerfile
+
+#### 1. 简介
+
+```
+Dockerfile其实就是根据特定的语法格式撰写出来的一个普通的文本文件
+利用docker build命令依次执行在Dockerfile中定义的一系列命令，最终生成一个新的镜像（定制镜像）
+```
+
+```shell
+#一般默认名字是 Dockerfile 
+[root@izuf6csxy0jrgs3azvia67z dockerfile-dir]# vim Dockerfile
+-------------------------------------------
+# test Dockerfile
+FROM centos
+RUN echo '这是一个测试的dockerfile'
+-------------------------------------------
+[root@izuf6csxy0jrgs3azvia67z dockerfile-dir]# docker build -h
+Flag shorthand -h has been deprecated, please use --help
+
+Usage:	docker build [OPTIONS] PATH | URL | -
+
+Build an image from a Dockerfile
+
+Options:
+      --add-host list           Add a custom host-to-IP mapping (host:ip)
+      --build-arg list          Set build-time variables
+      --cache-from strings      Images to consider as cache sources
+      --cgroup-parent string    Optional parent cgroup for the container
+      --compress                Compress the build context using gzip
+      --cpu-period int          Limit the CPU CFS (Completely Fair Scheduler) period
+      --cpu-quota int           Limit the CPU CFS (Completely Fair Scheduler) quota
+  -c, --cpu-shares int          CPU shares (relative weight)
+      --cpuset-cpus string      CPUs in which to allow execution (0-3, 0,1)
+      --cpuset-mems string      MEMs in which to allow execution (0-3, 0,1)
+      --disable-content-trust   Skip image verification (default true)
+  -f, --file string             Name of the Dockerfile (Default is 'PATH/Dockerfile')
+      --force-rm                Always remove intermediate containers
+      --iidfile string          Write the image ID to the file
+      --isolation string        Container isolation technology
+      --label list              Set metadata for an image
+  -m, --memory bytes            Memory limit
+      --memory-swap bytes       Swap limit equal to memory plus swap: '-1' to enable unlimited swap
+      --network string          Set the networking mode for the RUN instructions during build (default "default")
+      --no-cache                Do not use cache when building the image
+      --pull                    Always attempt to pull a newer version of the image
+  -q, --quiet                   Suppress the build output and print image ID on success
+      --rm                      Remove intermediate containers after a successful build (default true)
+      --security-opt strings    Security options
+      --shm-size bytes          Size of /dev/shm
+  -t, --tag list                Name and optionally a tag in the 'name:tag' format
+      --target string           Set the target build stage to build.
+      --ulimit ulimit           Ulimit options (default [])
+[root@izuf6csxy0jrgs3azvia67z dockerfile-dir]# pwd
+/root/home/docker_demo/dockerfile-dir
+[root@izuf6csxy0jrgs3azvia67z dockerfile-dir]# ll
+total 4
+-rw-r--r-- 1 root root 73 Mar 23 17:16 Dockerfile
+[root@izuf6csxy0jrgs3azvia67z dockerfile-dir]# docker build /root/home/docker_demo/dockerfile-dir
+Sending build context to Docker daemon  2.048kB
+Step 1/2 : FROM centos
+ ---> 1e1148e4cc2c
+Step 2/2 : RUN echo '这是一个测试的dockerfile'
+ ---> Running in 615183849e27
+这是一个测试的dockerfile
+Removing intermediate container 615183849e27
+ ---> 7c3459c0404e
+Successfully built 7c3459c0404e
+[root@izuf6csxy0jrgs3azvia67z dockerfile-dir]# docker images
+REPOSITORY                         TAG                 IMAGE ID            CREATED             SIZE
+<none>                             <none>              0ecb3daceb64        5 seconds ago       202MB
+redis                              latest              4161e91dcc29        3 days ago          95MB
+centos-net                         v1.0                cf3acaf1acc4        10 days ago         280MB
+registry                           latest              f32a97de94e1        2 weeks ago         25.8MB
+ubuntu                             latest              47b19964fb50        6 weeks ago         88.1MB
+47.101.212.36:9092/centos-latest   latest              1e1148e4cc2c        3 months ago        202MB
+centos                             latest              1e1148e4cc2c        3 months ago        202MB
+
+#发现name和tag是NONE
+[root@izuf6csxy0jrgs3azvia67z dockerfile-dir]# docker build /root/home/docker_demo/dockerfile-dir/ -t test-image:v1.0
+Sending build context to Docker daemon  2.048kB
+Step 1/2 : FROM centos
+ ---> 1e1148e4cc2c
+Step 2/2 : RUN echo '这是一个测试的dockerfile'
+ ---> Using cache
+ ---> 0ecb3daceb64
+Successfully built 0ecb3daceb64
+Successfully tagged test-image:v1.0
+[root@izuf6csxy0jrgs3azvia67z dockerfile-dir]# docker images
+REPOSITORY                         TAG                 IMAGE ID            CREATED             SIZE
+test-image                         v1.0                0ecb3daceb64        4 minutes ago       202MB
+redis                              latest              4161e91dcc29        3 days ago          95MB
+centos-net                         v1.0                cf3acaf1acc4        10 days ago         280MB
+registry                           latest              f32a97de94e1        2 weeks ago         25.8MB
+ubuntu                             latest              47b19964fb50        6 weeks ago         88.1MB
+47.101.212.36:9092/centos-latest   latest              1e1148e4cc2c        3 months ago        202MB
+centos                             latest              1e1148e4cc2c        3 months ago        202MB
+# 只是进行了重命名,并没有增加镜像
+
+#如果不使用 默认的 Dockerfile 作为名字, 可以如下操作
+[root@izuf6csxy0jrgs3azvia67z dockerfile-dir]# ll
+total 4
+-rw-r--r-- 1 root root 73 Mar 23 17:16 Dockerfile
+[root@izuf6csxy0jrgs3azvia67z dockerfile-dir]# mv Dockerfile dockerfile-test
+[root@izuf6csxy0jrgs3azvia67z dockerfile-dir]# docker build . -f /root/home/docker_demo/dockerfile-dir/dockerfile-test -t test-image:v2.0
+Sending build context to Docker daemon  2.048kB
+Step 1/2 : FROM centos
+ ---> 1e1148e4cc2c
+Step 2/2 : RUN echo '这是一个测试的dockerfile'
+ ---> Using cache
+ ---> 0ecb3daceb64
+Successfully built 0ecb3daceb64
+Successfully tagged test-image:v2.0
+[root@izuf6csxy0jrgs3azvia67z dockerfile-dir]# docker images
+REPOSITORY                         TAG                 IMAGE ID            CREATED             SIZE
+test-image                         v1.0                0ecb3daceb64        8 minutes ago       202MB
+test-image                         v2.0                0ecb3daceb64        8 minutes ago       202MB
+redis                              latest              4161e91dcc29        3 days ago          95MB
+centos-net                         v1.0                cf3acaf1acc4        10 days ago         280MB
+registry                           latest              f32a97de94e1        2 weeks ago         25.8MB
+ubuntu                             latest              47b19964fb50        6 weeks ago         88.1MB
+47.101.212.36:9092/centos-latest   latest              1e1148e4cc2c        3 months ago        202MB
+centos                             latest              1e1148e4cc2c        3 months ago        202MB
+```
+
+> **要关注 ` ---> Using cache`**
+>
+> - 当对 Dockerfile 进行build的时候, 如果是第一次 build 那么会执行每一步;
+> - 如果不是第一次build , 之前的步骤都不会再执行,  从修改的那一个步骤开始后面的不论是否修改都全部执行. 
+> - 但凡进行修改就会 重新生成一个新 镜像
+
+#### Dockerfile 使用命令  docker build
+
+> 底层就是  `docker commit`
+
+```
+作用：
+	根据dockerfile创建镜像
+命令格式：
+	docker build [OPTIONS] PATH | URL | -
+命令参数：
+	PATH		Dockerfile所在路径(文件夹路径)，文件名必须是Dockerfile
+	URL		Dockerfile所在URL地址
+	
+	OPTIONS:
+		-t, --tag list		为镜像设置名称和tag
+		-f, --file string		指定Dockerfile的路径(这是可以使用其他名称命名Dockerfile)
+```
+
+####  Dockerfile 特征
+
+**Dockerfile 构建特征 (一)**
+
+==查看官方的Dockerfile：https://github.com/docker-library/docs ==
+
+
+
+
+
+
+
