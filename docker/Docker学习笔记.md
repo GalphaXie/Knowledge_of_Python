@@ -149,7 +149,7 @@ ubuntu              14.04               5dbc3f318ea5        6 weeks ago         
 centos              7                   1e1148e4cc2c        3 months ago        202MB
 centos              latest              1e1148e4cc2c        3 months ago        202MB
 [root@izuf6csxy0jrgs3azvia67z ~]# docker rmi 1e11
-Error response from daemon: conflict: unable to delete 1e1148e4cc2c (must be forced) - image is referenced in multiple repositories
+Error response from daemon: conflict: unable to delete 1e1148e4cc2c (must be forced) -image is referenced in multiple repositories
 
 ---------------------------------
 [root@izuf6csxy0jrgs3azvia67z ~]# docker rmi centos
@@ -197,13 +197,13 @@ cowardly refusing to save to a terminal. Use the -o flag or redirect
 [root@izuf6csxy0jrgs3azvia67z docker_demo]# docker save centos ubuntu:14.04 47b1 centos:7 > linux.tar
 [root@izuf6csxy0jrgs3azvia67z docker_demo]# ll
 total 486424
--rw-r--r-- 1 root root 498098176 Mar 10 11:52 linux.tar
+-rw-r--r--1 root root 498098176 Mar 10 11:52 linux.tar
 [root@izuf6csxy0jrgs3azvia67z docker_demo]# ll
--rw-r--r-- 1 root root 498098176 Mar 10 11:52 linux.tar
+-rw-r--r--1 root root 498098176 Mar 10 11:52 linux.tar
 [root@izuf6csxy0jrgs3azvia67z docker_demo]# docker save centos ubuntu:14.04 47b1 centos:7 -o linux2.tar
 [root@izuf6csxy0jrgs3azvia67z docker_demo]# ll
--rw------- 1 root root 498098176 Mar 10 11:54 linux2.tar
--rw-r--r-- 1 root root 498098176 Mar 10 11:52 linux.tar
+-rw-------1 root root 498098176 Mar 10 11:54 linux2.tar
+-rw-r--r--1 root root 498098176 Mar 10 11:52 linux.tar
 ```
 
 
@@ -457,7 +457,7 @@ IMAGE               CREATED             CREATED BY                              
 
 
 
-### 第四章 容器 -- 打包技术
+### 第四章 容器 --打包技术
 
 关闭
 
@@ -1081,8 +1081,8 @@ centos              latest              1e1148e4cc2c        3 months ago        
 [root@izuf6csxy0jrgs3azvia67z docker_demo]# docker export -o centos-net.tar f825
 [root@izuf6csxy0jrgs3azvia67z docker_demo]# ll
 total 744844
--rw------- 1 root root 264616960 Mar 13 22:22 centos-net.tar
--rw-r--r-- 1 root root 498098176 Mar 10 11:52 linux.tar
+-rw-------1 root root 264616960 Mar 13 22:22 centos-net.tar
+-rw-r--r--1 root root 498098176 Mar 10 11:52 linux.tar
 ```
 
 #### 容器打包的导入 docker import
@@ -1091,7 +1091,7 @@ total 744844
 作用：
 	从一个tar文件中导入内容创建一个镜像
 命令格式：
-	docker import [OPTIONS] file|URL|- [REPOSITORY[:TAG]]
+	docker import [OPTIONS] file|URL|-[REPOSITORY[:TAG]]
 命令参数(OPTIONS)：
 	-c, --change list      	为创建的镜像加入Dockerfile命令
 	-m, --message string   	导入时，添加提交信息	
@@ -1101,7 +1101,7 @@ total 744844
 [root@izuf6csxy0jrgs3azvia67z docker_demo]# docker import -h
 Flag shorthand -h has been deprecated, please use --help
 
-Usage:	docker import [OPTIONS] file|URL|- [REPOSITORY[:TAG]]
+Usage:	docker import [OPTIONS] file|URL|-[REPOSITORY[:TAG]]
 
 Import the contents from a tarball to create a filesystem image
 
@@ -1154,9 +1154,9 @@ c0ff4aa58656        5 minutes ago                           257MB               
 
 ------------------
 容器网络管理:
-- 不设置隔离   => 性能最高
+-不设置隔离   => 性能最高
 自带5种网络驱动模式
-- 可以手动安装别的模式
+-可以手动安装别的模式
 ```
 
 
@@ -1518,7 +1518,7 @@ Error response from daemon: container cannot be connected to multiple networks w
 
 ![bridge网络模式](./docker_img/bridge网络.png)
 
-#### bridge 网络模式 -  端口映射
+#### bridge 网络模式 - 端口映射
 
 ```
 作用：
@@ -1606,7 +1606,7 @@ macvlan网络模式，最主要的特征就是他们的通信会直接基于mac�
 
 
 
-### 第七章 Dokcer 核心技术 -- 数据卷
+### 第七章 Dokcer 核心技术 --数据卷
 
 #### 为什么使用数据卷
 
@@ -1635,9 +1635,9 @@ macvlan网络模式，最主要的特征就是他们的通信会直接基于mac�
 #### docker 挂载容器数据卷的三种方式
 
 ```
-- bind mounts：将宿主机上的一个文件或目录被挂载到容器上。
-- volumes：由Docker创建和管理。使用docker volume命令管理
-- tmpfs mounts：tmpfs 是一种基于内存的临时文件系统。tmpfs mounts 数据不会存储在磁盘上。
+-bind mounts：将宿主机上的一个文件或目录被挂载到容器上。
+-volumes：由Docker创建和管理。使用docker volume命令管理
+-tmpfs mounts：tmpfs 是一种基于内存的临时文件系统。tmpfs mounts 数据不会存储在磁盘上。
 ```
 
 ![docker 挂载容器数据卷的三种方式](./docker_img/docker挂载数据卷方式.png)
@@ -1668,7 +1668,7 @@ macvlan网络模式，最主要的特征就是他们的通信会直接基于mac�
 [root@izuf6csxy0jrgs3azvia67z d_dir]# docker exec 949c touch /root/c_dir/test.txt
 [root@izuf6csxy0jrgs3azvia67z d_dir]# ll
 total 0
--rw-r--r-- 1 root root 0 Mar 22 14:44 test.txt
+-rw-r--r--1 root root 0 Mar 22 14:44 test.txt
 ```
 
 **-v 和 --mount 方式的区别: 前者在src目录不存在的时候自动创建对应的目录而不会报错. 而 --mount 的src指定的目录必须存在;  同时前者是通过`:`来分隔, 后者是通过`k=v,` 来分割. **
@@ -1692,7 +1692,7 @@ drwxr-xr-x 2 root root 4096 Mar 22 14:50 mount_dir
 [root@izuf6csxy0jrgs3azvia67z home]# cd mount_dir/
 [root@izuf6csxy0jrgs3azvia67z mount_dir]# ll
 total 0
--rw-r--r-- 1 root root 0 Mar 22 14:50 test2.txt
+-rw-r--r--1 root root 0 Mar 22 14:50 test2.txt
 ```
 
 
@@ -1854,7 +1854,7 @@ local               volume-2
 # 但是仍然可以算作一种持久化的存储
 ```
 
-#### 共享其他容器的数据卷 –- 数据卷容器
+#### 共享其他容器的数据卷 –-数据卷容器
 
 ```
 利用docker run/create 的--volumes-from参数指定数据卷容器
@@ -1890,7 +1890,7 @@ total 0
 [root@izuf6csxy0jrgs3azvia67z _data]# docker exec 6203958a touch /root/c_dir/test_txt
 [root@izuf6csxy0jrgs3azvia67z _data]# ll
 total 0
--rw-r--r-- 1 root root 0 Mar 22 16:29 test_txt
+-rw-r--r--1 root root 0 Mar 22 16:29 test_txt
 ```
 
 #### Docker 数据卷的注意事项
@@ -1990,7 +1990,7 @@ user
 utmp
 ```
 
-### 第八章 Docker核心技术 -- 仓库
+### 第八章 Docker核心技术 --仓库
 
 #### docker 私有仓库搭建
 
@@ -2025,7 +2025,7 @@ Client:
  OS/Arch:           linux/amd64
  Experimental:      false
 
-Server: Docker Engine - Community
+Server: Docker Engine -Community
  Engine:
   Version:          18.09.3
   API version:      1.39 (minimum version 1.12)
@@ -2054,7 +2054,7 @@ CONTAINER ID        IMAGE               COMMAND                  CREATED        
 #还可以通过浏览器访问
 ```
 
-#### 私有仓库 -- 上传、下载镜像
+#### 私有仓库 --上传、下载镜像
 
 > - 必须按照规范`docker tag IMAGE ip:port/image_name` 来修改名字才能完成上传, 其中**端口**是之前进行映射的 服务器端口4000
 > - HTTPS 和 HTTP
@@ -2162,7 +2162,7 @@ CONTAINER ID        IMAGE               COMMAND                  CREATED        
 
 ```
 
-#### 带认证的私有仓库 -- 上传 下载镜像
+#### 带认证的私有仓库 --上传 下载镜像
 
 ```
 在本地机器上：
@@ -2241,7 +2241,7 @@ centos                             latest              1e1148e4cc2c        3 mon
 
 
 
-### 第九章 Docker核心技术 -- Dockerfile
+### 第九章 Docker核心技术 --Dockerfile
 
 #### 1. 简介
 
@@ -2298,7 +2298,7 @@ Options:
 /root/home/docker_demo/dockerfile-dir
 [root@izuf6csxy0jrgs3azvia67z dockerfile-dir]# ll
 total 4
--rw-r--r-- 1 root root 73 Mar 23 17:16 Dockerfile
+-rw-r--r--1 root root 73 Mar 23 17:16 Dockerfile
 [root@izuf6csxy0jrgs3azvia67z dockerfile-dir]# docker build /root/home/docker_demo/dockerfile-dir
 Sending build context to Docker daemon  2.048kB
 Step 1/2 : FROM centos
@@ -2343,7 +2343,7 @@ centos                             latest              1e1148e4cc2c        3 mon
 #如果不使用 默认的 Dockerfile 作为名字, 可以如下操作
 [root@izuf6csxy0jrgs3azvia67z dockerfile-dir]# ll
 total 4
--rw-r--r-- 1 root root 73 Mar 23 17:16 Dockerfile
+-rw-r--r--1 root root 73 Mar 23 17:16 Dockerfile
 [root@izuf6csxy0jrgs3azvia67z dockerfile-dir]# mv Dockerfile dockerfile-test
 [root@izuf6csxy0jrgs3azvia67z dockerfile-dir]# docker build . -f /root/home/docker_demo/dockerfile-dir/dockerfile-test -t test-image:v2.0
 Sending build context to Docker daemon  2.048kB
@@ -2396,9 +2396,78 @@ centos                             latest              1e1148e4cc2c        3 mon
 
 ==查看官方的Dockerfile：https://github.com/docker-library/docs ==
 
+![Dockerfile 构建特征](./docker_img/dockerfile构建特征.png)
+
+**Dockerfile构建特征 (二)**
+
+```
+Dockerfile必须具备一个FROM命令来进行构建
+每一个Dockerfile命令都会构建一层镜像（本质上是每一层都会启动一个容器，执行完命令后，将容器进行提交commit后，产生新的镜像层）
+通过查看下载下来的镜像，发现历史层信息的层ID是missing，其实是因为原本的层id只存在于构建镜像的宿主机上，一旦转移镜像后，历史层消息中将只保留最新一层的ID
+```
+
+**Dockerfile 命令概述 **  [官方权威链接](https://docs.docker.com/engine/reference/builder/#usage)
+
+- FROM: 指定基础镜像
+
+- RUN： 构建镜像过程中需要执行的命令。可以有多条。docker build
+  - 在 `docker build`的过程中 被执行, 所以在有多条RUN命令且发生修改的时候, 一般新修改的放在后面防止重复执行命令或者造成不必要的损耗.
+
+- CMD：添加启动容器时需要执行的命令。多条只有最后一条生效。可以在启动容器时被覆盖和修改。
+  - **在   `docker run` 或者 `docker create` 的时候 被执行**
+  - 有三种方式,  **推荐使用第三种方式**
+  - 第一种: `CMD ["executable","param1","param2"]` (exec form) , 本质是类似linux下执行`exec`的方式, 以当前的终端进程来直接执行, 且执行结束后会杀死当前终端. 所以一般并不推荐该种方式, 如果前面涉及配置环境变量等, 则没法满足功能.
+  - 第二种: `CMD ["param1", "param2"] ` (as default params to ENTRYPOINT)
+  - 第三种: `CMD command param1 param2` (shell form).  本质上linux下启动一个子进程或者子线程来执行, 会继承当前终端的环境.
+
+- ENTRYPOINT：同CMD，但这个一定会被执行，不会被覆盖修改。
+  - **在   `docker run` 或者 `docker create` 的时候 被执行**
+  - **有两种方式, 推荐使用 第一种 方式**
+  - 第一种: `ENTRYPOINT["executable","param1","param2"]` (exec form, prefered)
+  - 第二种: `ENTRYPOINT command param1 param2` (shell form)
+  - **推荐第一种的原因是 第二种创建子进程的时候是在后台执行, 没法传递信号到前台, 且执行命令的PID不再是1**
+
+- LABEL：为镜像添加对应的数据。
+  - 命令: `LABEL <key>=<value> <key>=<value> <key>=<value> ...`
+
+- MLABELAINTAINER：表明镜像的作者。将被遗弃，被LABEL代替。
+
+- EXPOSE：设置对外暴露的端口。
+  - 命令: `EXPOSE <port> [<port>/<protocol>...]`,
+  - 举例: `EXPOSE 80/udp`  默认是 TCP ,可以修改 UDP
+  - 可以设置多个暴露的端口, 写多行 EXPOSE 命令即可
+
+- ENV：设置执行命令时的环境变量，并且在构建完成后，仍然生效
+
+- ARG：设置只在构建过程中使用的环境变量，构建完成后，将消失
+
+- ADD：将本地文件或目录拷贝到镜像的文件系统中。能解压特定格式文件，能将URL作为要拷贝的文件
+
+- COPY：将本地文件或目录拷贝到镜像的文件系统中。
+
+- VOLUME：添加数据卷
+
+- USER：指定以哪个用户的名义执行RUN, CMD 和ENTRYPOINT等命令
+
+- WORKDIR：设置工作目录
+- ONBUILD：如果制作的镜像被另一个Dockerfile使用(FROM)，将在那里被执行Docekrfile命令
+- STOPSIGNAL：设置容器退出时发出的关闭信号。
+
+- HEALTHCHECK：设置容器状态检查。
+
+- SHELL：更改执行shell命令的程序。Linux的默认shell是[“/bin/sh”, “-c”]，Windows的是[“cmd”, “/S”, “/C”]。
+
+**总结**
+
+重点掌握:
+
+- Docker 容器与镜像之间的关系 (尤其commit命令的作用和效果)
+- Dockerfile 的书写规则和使用规则
+
+![dockerfile规则](./docker_img/dockerfile规则.png)
 
 
 
+ 
 
-
-
+#### [最好的学习网站](https://github.com/docker-library/docs)
