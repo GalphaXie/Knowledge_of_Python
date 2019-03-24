@@ -2662,7 +2662,131 @@ volumes:
 
 
 
+**Docker Compose 案例二  单机环境ELK系统的搭建 (一)**
+
+•[ELK](https://www.elastic.co/guide/index.html)工作原理介绍:
+
+![](./docker_img/ELK工作原理.png)
 
 
 
+**Docker Compose 案例二 单机环境ELK系统搭建(二)**
+
+步骤：
+
+- 配置单机版的docker-compose.yaml文件（[ELK](https://www.docker.elastic.co/)[镜像地址](https://www.docker.elastic.co/)）
+
+- 利用docker-compose up启动环境
+
+
+
+**Docker Compose 案例三  多主机环境ELK系统搭建（一）**
+
+•Swarm 介绍
+
+![](./docker_img/swarm示例.png)
+
+
+
+**Docker Compose 案例三  多主机环境ELK系统搭建（二）**
+
+•集群版Docker Compose工作原理
+
+![](./docker_img/集群docker-compose工作原理.png)
+
+
+
+> 集群和单个的docker-compose原理做个对比:
+>
+> - 1.集群的镜像必须是已经创建好的, 不能在 up 的过程中再创建. 所以这里的 菱形image 只有一个;
+> - 2.单个docker-compose 中一个服务只能创建一个容器,  而集群中 一个 Sevice服务 创建了多个 container .
+> - 3.集群的 docker-compose 构成 是:  Dockerfile + docker stack/service  和单机版不同.
+
+
+
+**Docker Compose 案例三  多主机环境ELK系统搭建（三）**
+
+步骤
+
+- 使用[docker](https://docs.docker.com/engine/reference/commandline/swarm/)[ ](https://docs.docker.com/engine/reference/commandline/swarm/)[swarm](https://docs.docker.com/engine/reference/commandline/swarm/)配置多个docker node集群节点
+  - 需要  官网上 查看  swarm 搭建 集群的命令
+
+- 配置集群版ELK的docker-compose.yaml文件
+
+- 利用docker stack deploy部署集群版ELK环境
+
+
+
+---
+
+#### 实际工作中用到的一些小demo
+
+##### 1. Dockerfile 内容
+
+```dockerfile
+FROM python:3.6.5
+LABEL maintainer test007
+ENV PYTHONUNBUFFERED 1
+RUN mkdir /docker_api
+WORKDIR /docker_api
+ADD . /docker_api
+RUN pip install --upgrade pip
+RUN  pip install -i https://pypi.douban.com/simple -r requirements.txt
+RUN chmod u+x docker-entrypoint.sh
+ENTRYPOINT ["/bin/bash", "docker-entrypoint.sh"]
+```
+
+##### 2. docker-entrypoint.sh
+
+```shell
+#!/bin/bash
+python manage.py makemigrations
+python manage.py migrate 
+python manage.py runserver 0.0.0.0:8000
+```
+
+##### 3. docker-compose.yml
+
+```yaml
+version: '3'
+services:
+    db:
+      image: mysql:5.6
+      expose:
+        - 3306
+      environment:
+          MYSQL_DATABASE: db_name
+          MYSQL_ROOT_PASSWORD: db_pw
+          MYSQL_USER: root
+      volumes:
+         - ./mycustom.cnf:/etc/mysql/conf.d/custom.cnf
+         - ./containers/mysql/data:/var/lib/mysql
+    web:
+       build: .
+       restart: always
+       command: python manage.py runserver 0.0.0.0:8000
+       volumes:
+          - .:/docker_api
+       ports:
+          - 8020:8000
+       depends_on:
+          - db
+          - redis
+       links:
+          - db
+          - redis
+    redis:
+        image: 'redis'
+        expose:
+          - 6379
+        volumes:
+          - ./redisdata:/docker_api/redisdata
+
+    phpmyadmin:
+      image: phpmyadmin/phpmyadmin
+      ports:
+         - 8021:80
+      links:
+         - db
+```
 
