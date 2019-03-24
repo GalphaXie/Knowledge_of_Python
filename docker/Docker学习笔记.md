@@ -2471,3 +2471,198 @@ Dockerfile必须具备一个FROM命令来进行构建
  
 
 #### [最好的学习网站](https://github.com/docker-library/docs)
+
+
+
+### 第十章 Docker核心技术 之 Docker Compose
+
+#### docker compose 简介
+
+Docker Compose是一个能**一次性定义和管理多个Docker容器**的工具。
+
+**详细地说：**
+
+- Compose中定义和启动的每一个容器都相当于一个服务(service)
+- Compose中能定义和启动多个服务，且它们之间通常具有协同关系
+
+**管理方式：**
+
+  使用YAML文件来配置我们应用程序的服务。
+
+  使用单个命令（docker-compose up），就可以创建并启动配置文件中配置的所有服务。
+
+#### docker compose 工作原理
+
+- *Docker Compose File* + *Docker Compose CLI* 两部分共同组成了  docker compose
+- 相当于 启动  多个 service
+
+![Docker-Compose 原理](./docker_img/docker-compose原理.png)
+
+
+
+**Docker Compose 安装**
+
+•Docker for Mac与Docker for Windows自带docker-compose
+
+•Linux下需要单独安装：
+
+•第一步：sudo curl -L https://github.com/docker/compose/releases/download/1.21.2/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
+
+•第二步：sudo chmod +x /usr/local/bin/docker-compose
+
+终端中使用docker-compose --version查看安装的版本
+
+这里示例安装版本是1.21.2，很可能您看到这里时，已经出现更新的版本，因此建议换成最新版本。[查看最新版本](https://github.com/docker/compose/releases)。
+
+•[其他安装方法查看](https://docs.docker.com/compose/install/)
+
+
+
+**Docker Compose CLI**
+
+•利用docker-compose --help查看或者[查看官方文档](https://docs.docker.com/compose/reference/overview/)
+
+•对比后会发现：Docker Compose CLI的很多命令的功能和Docker Client CLI是相似的。最主要的区别就是前者能一次性运行管理多个容器，后者只能一次管理一个。
+
+
+
+**Docker Compose 版本**
+
+•[Docker Compose File](https://docs.docker.com/compose/compose-file/) 有多个版本，基本是向后兼容的，但也有极个别配置项高版本中没有。
+
+•在docker-compose.yml一开始就需要利用version关键词标明当前file使用的版本
+
+
+
+**Docker Compose FIle TOP配置参数概览**
+
+Docker Compose File 顶级配置项：
+
+•version：指定Docker Compose File版本号
+
+•services：定义多个服务并配置启动参数
+
+•volumes：声明或创建在多个服务中共同使用的数据卷对象
+
+•networks：定义在多个服务中共同使用的网络对象
+
+•configs：声明将在本服务中要使用的一些配置文件
+
+•secrets：声明将在本服务中要使用的一些秘钥、密码文件
+
+•x-***：自定义配置。主要用于复用相同的配置。
+
+
+
+[更多详细配置](https://docs.docker.com/compose/compose-file/)
+
+
+
+**Docker Compose 应用**
+
+<u>**无疑, 这一点内容非常重要, 需要反复实践. 时间关系, 没法详细复现一次**</u>
+
+**Docker Compose 案例一  小型web服务项目搭建**
+
+> 步骤:
+>
+> - 1.搭建一个Flask小型web项目
+>
+> - 2.根据项目环境, 利用Dockerfile构建镜像
+>
+> - 3.撰写docker-compose.yaml配置文件, 启动项目
+
+下面是 app.py文件:
+
+```python
+# encoding=utf-8
+import time
+
+import redis
+from flask import Flask
+
+app = Flask(__name__)
+# 此处的host是docker-compose.yaml文件中redis服务的名称
+cache = redis.Redis(host='redis', port=6379)
+
+def get_hit_count():
+    """利用redis统计网站访问次数"""
+    retries = 5
+    # 由于当redis重启的时候, 可能有短暂时间无法访问redis
+    # 因此循环的作用就是在此期间重试, 默认重试 5 次
+    while True:
+        try:
+        # redis 的 incr 方法, 如果hits值存在则自动+1, 否则新增该键, 值为1
+            return cache.incr("hits")
+        except redis.exceptions.ConnectError as e:
+            if retries == 0:
+                raise e
+            retries -= 1
+            time.sleep(0.5)
+
+
+@app.route("/")
+def main():
+    count = get_hit_count()
+    return "欢迎访问, 网站已经累计访问{}次\n".formart(count)
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", debug=True)
+```
+
+Dockerfile 文件
+
+```dockerfile
+# flask web app v1.0
+# 搭建一个基于flask的web项目, 实现简单的web访问量统计
+
+# 第一步: 获取镜像: Python3.5.2
+# 补充小技巧: 当无法很好判断镜像版本的时候, 可以去github上docker维护的官方lib(地址:https://github.com/docker-library/docs)上去找 对应的tag, 并且推荐找alpine的, 更加轻量
+FROM python:3.5-alpine
+
+# 第二步: 拷贝代码到镜像中: ADD COPY 注: 此项目代码量少故而采此方式, 实际中会使用其他方式拷贝到镜像中
+# COPY 更加安全, 所以更推荐
+COPY ./flask-web-codes /code
+
+# 第三步: 安装项目的依赖环境: flask redis(这里把它作为另外一个镜像进行单独配置, 这里不再安装)
+WORKDIR /code
+RUN pip install -r requirements.txt
+
+# 第四步: 项目启动, 通过配置 CMD 来实现:  python app.py
+CMD ["python", "app.py"]
+```
+
+docker-compose.yaml 文件内容:
+
+```yaml
+version: "3.7"
+services:
+  flask-web:
+    build: .
+    ports:
+      - "5000:5000"
+    container_name: flask-web
+    networks:
+      - web
+  redis:
+    image: redis
+    container_name: redis
+    networks:
+      - web
+    volumes:
+      - redis-data:/data
+networks:
+  web:
+    driver: bridge
+volumes:
+  redis-data:
+    driver: local
+```
+
+
+
+
+
+
+
