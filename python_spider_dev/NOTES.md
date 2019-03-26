@@ -68,3 +68,40 @@
 - python解释器映射
 - sftp映射
 
+
+
+#### 2. 依赖安装的思路
+
+- 1.先去  要安装的软件的官网 找 `install guide`
+- 2.如果没有对应操作系统的依赖安装方式, 可以去 `github` 去搜索 别人已经有的
+- 3.去看报错信息, 去谷歌百度搜索 依赖 的新名称
+- 4.通过  apk 或 apt 等 + search + 模糊key 去搜索
+
+
+
+`docker run -d -p 4444:4444 --shm-size=2g selenium/standalone-chrome:3.141.59-mercury`
+
+
+
+更改 host   :  172.17.0.2  ----> chrome
+
+连接被拒绝
+
+```
+  File "/usr/local/lib/python3.5/site-packages/urllib3/util/retry.py", line 398, in increment
+    raise MaxRetryError(_pool, url, error or ResponseError(cause))
+urllib3.exceptions.MaxRetryError: HTTPConnectionPool(host='chrome', port=4444): Max retries exceeded with url: /wd/hub/session (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f3128da9828>: Failed to establish a new connection: [Errno 111] Connection refused',))
+```
+
+s
+
+还涉及到一个知识点:
+
+chrome 容器 和 容器中  chrome 是两回事. 需要 chrome容器工作起来之后, 还要 它其中的 chrome 跑起来.
+
+这个时候 spider 去连接  才能 成功.
+
+
+
+**授权问题**
+
