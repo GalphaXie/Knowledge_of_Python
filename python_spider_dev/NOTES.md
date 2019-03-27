@@ -105,3 +105,148 @@ chrome 容器 和 容器中  chrome 是两回事. 需要 chrome容器工作起�
 
 **授权问题**
 
+
+
+#### 手机连接问题
+
+通过  teamviewer 工具来进行手机的连接
+
+Github提示的测试步骤:
+
+- `docker run --privileged -d -p 4723:4723 -v ~/.android:/root/.android -v /dev/bus/usb:/dev/bus/usb --name container-appium appium/appium`
+  - 激活测试的容器
+  - `--privileged`  是进行授权 ,  在  yaml 文件中可以设置为  true
+  - 两个映射也很重要, 一个是root用户的映射,解决每次连接都需要授权,  一个是 usb 驱动的映射
+
+- `docker ps -a`  查看容器是否已经创建
+
+- `docker exec -it container-appium adb devices`  
+
+  - 当看到 一串  字符串码  的时候,表示已经连接成功了.
+  - 然后, 查看手机的一些信息 作为 定制的`desired_capabilities` 配置信息
+
+- `docker exec -it container-appium adb shell`
+
+  - 前提要保证手机的连接
+
+  - 在此命令执行成功后, 内部继续执行 `logcat | grep ActivityManager`
+
+    - 会出来很多 内容, 但是都忽略
+
+  - 然后,  点开任意一款 app  , 然后  控制台会打印新的内容, 注意 类似下面这些
+
+    - ```
+      cmp=com.ted.android/.view.splash.SplashActivity
+      ```
+
+    - `com.ted.android` 就是 `desired_caps["appPackage"]`
+
+    - `.view.splash.SplashActivity` 就是 `desired_caps["appActivity"]`
+
+- codes
+
+  - ```python
+    # -*- coding: utf-8 -*-
+    from appium import webdriver
+    import requests
+    
+    # 执行 docker exec -it container-appium adb devices 并保证手机正常连接
+    # 然后找到下列信息
+    desired_caps = {}
+    desired_caps["platformName"] = "Android"  # 操作系统名称
+    desired_caps["platformVersion"] = "8.0.0"  # 系统版本
+    desired_caps["deviceName"] = "Nokia 6"  # 手机名称
+    
+    # 执行 docker exec -it container-appium adb shell, 并在内部执行  logcat | grep ActivityManager
+    # 通过点击任意一款app, 然后从控制台 找到类似 "cmp=com.ted.android/.view.splash.SplashActivity"
+    desired_caps["appPackage"] = "com.ted.android"
+    desired_caps["appActivity"] = ".view.splash.SplashActivity"
+    
+    print("尝试连接")
+    
+    
+    def test_chrome_server():
+        while True:
+            i = 0
+            try:
+                resp = requests.get("http://appium:4723/wd/hub/status", timeout=0.5)
+            except Exception as e:
+                i += 1
+                if i > 10:
+                    raise e
+            else:
+                print(resp.content)
+                break
+    
+    
+    test_chrome_server()
+    
+    driver = webdriver.Remote(
+        command_executor = "http://appium:4723/wd/hub",
+        # desired_capabilities = DesiredCapabilities.CHROME 因为容器内部没有chrome, 同时手机的型号多样需要自己定制.
+        desired_capabilities = desired_caps
+    )
+    
+    
+    print("连接成功")
+    import time
+    time.sleep(3)  # 加一个延时, 保证界面完全 展示出来之后 再点击
+    driver.find_element_by_android_uiautomator('text(\"热门\")').click()
+    time.sleep(5)
+    # driver.close()
+    # 注意点  不再是 close 而是 quit 方法
+    driver.quit()
+    ```
+
+- **授权问题**
+
+  - 需要映射  `-v ~/.android:/root/.android`
+
+
+
+#### 抓包
+
+Charles(推荐)  [Charles 在线破解工具](https://www.zzzmode.com/mytools/charles/) [Charles 破解工具web版](https://github.com/8enet/Charles-Crack)
+
+- 本地代理
+- 本地代理只能同时有一个工作, 除非配置多级代理
+
+HTTP抓包
+
+HTTPS抓包
+
+配置证书
+
+![配置证书](./img/charles配置1.png)
+
+
+
+**andriod 抓包**
+
+- 1.需要和charles在同一个局域网网段, 可以通过无线wifi 发送连接
+- 2.还需要配置 **[代理]** --> **[手动]** ,,   配置 :
+  - 代理服务器主机名:   装charles的主机在局域网的ip
+  - 代理服务器port:  在charles的代理设置中, 默认是 8888
+- 3.**微信小程序的请求  https 协议**
+  - 被charles代理之后, 是没法发送 https 请求的, 因为没有安装证书.
+  - 但是, 可以通过浏览器 发送 https 请求.
+  - 但是, 如果要 从 应用内部访问https 请求, 可以通过 charles 的 来配置
+    - ![配置](./img/charles配置2.png)
+    - 出现如下弹框, 提示: 
+      - 1.我们给手机配置  代理 IP 和 代理 port
+      - 2.去手机浏览器 访问  chls.pro/ssl  下载证书
+    - ![配置手机证书](./img/charles配置3.png)
+
+
+
+#### websocket 协议
+
+**应用场景: **  直播平台 弹幕
+
+| 协议      | 特点                                                         |
+| --------- | ------------------------------------------------------------ |
+| HTTP      | 1.请求和响应是一一对应的, 先由客户端发送, 服务器响应<br />2.单向<br />3.每次请求都是一个新的套接字, 资源主要消耗在 不停的开关套接字. |
+| websocket | 1.类似套接字编程, 但是有 基于 HTTP 协议的握手过程.<br />2.当服务器和客户端都开启的时候, C 会发送请求 和 S 建立连接<br />3.C 和 S 之间 可以多次的 双向 推送消息<br />4.只用一个套接字 即可, 不会在一次请求后断开, 所以请求量很大的时候也会占用很多资源. <br />5.有长连接和短链接的方式, 但是用 websocket 一般都是用 长连接, 否则可以选 HTTP更好 |
+
+
+
