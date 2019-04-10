@@ -92,7 +92,3 @@ bin/kafka-console-producer.sh --broker-list 阿里云公网IP:9092  --topic test
 
 - 1.作为 **生产者** 产生的 topic 如果不存在, 那么在 kafka 服务器中会自动创建 topic 到列表中
 - 2.作为 **消费者** 可以设置为 **手动** **同步|异步** 提交修改偏移量. 实现 **断点续传** 功能. 当然可以用替代方法 `auto_offset_reset='earliest'`   注: 未测试过
-
-
-
-### 
