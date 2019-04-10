@@ -4759,9 +4759,13 @@ REST framewrok生成接口文档需要`coreapi`库的支持:    `pip install cor
 from rest_framework.documentation import include_docs_urls
 urlpatterns = [
     ...
-    url(r'^docs/', include_docs_urls(title='My API title'))  # title选项对应网页的标题
+    url(r'^docs/', include_docs_urls(title='My API title))  # title选项对应网页的标题
 ]
+# 如果存在权限的问题，加上 authentication_classes=[], permission_classes=[] 约束
+# 例如: include_docs_urls(title='API', authentication_classes=[], permission_classes=[])
 ```
+
+
 
 ##### 5.9.3 文档描述的定义位置
 
