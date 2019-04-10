@@ -4749,9 +4749,94 @@ serializer.data
 >
 > 2.能生成的是继承 `APIView` 及其子类的视图
 
+##### 5.9.1 安装依赖
 
+REST framewrok生成接口文档需要`coreapi`库的支持:    `pip install coreapi`
 
+##### 5.9.2 (总路由中)设置接口文档访问路径
 
+```python
+from rest_framework.documentation import include_docs_urls
+urlpatterns = [
+    ...
+    url(r'^docs/', include_docs_urls(title='My API title'))  # title选项对应网页的标题
+]
+```
+
+##### 5.9.3 文档描述的定义位置
+
+1) 单一方法的视图, 可直接使用类视图的文档字符串, 如
+
+```python
+class BookListView(generics.ListAPIView):
+    """
+    返回所有图书信息
+    """
+```
+
+2) 包含多个方法的视图, 在类视图的文档字符串中, 分开方法定义, 如
+
+```python
+class BookListCreateView(generics.ListCreateAPIView):
+    """
+    get:
+    返回所有图书信息.
+
+    post:
+    新建图书.
+    """
+```
+
+3) 对于视图集ViewSet, 仍在类视图的文档字符串中分开定义, 但是应使用action名称区分, 如
+
+```python
+class BookInfoViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, GenericViewSet):
+    """
+    list:
+    返回图书列表数据
+    
+    retrieve:
+    返回图书详情数据
+    
+    latest:
+    返回最新的图书数据
+    
+    read:
+    修改图书的阅读量
+    """
+```
+
+##### 5.9.4 访问接口文档网页
+
+*浏览器访问:  127.0.0.1:8000/docs/   ,  即可看到自动生成的接口文档*
+
+**两点说明:**
+
+1) 视图集ViewSet中的retrieve名称,  在接口文档网站中叫做 read
+
+2) 参数的Description需要在模型类或序列化器类的字段中以 `help_text`选项定义, 如:
+
+```python
+class BookInfo(models.Model):
+    ...
+    bread = models.IntegerField(default=0, verbose_name='阅读量', help_text='阅读量')
+    ...
+```
+
+或
+
+```python
+class BookReadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BookInfo
+        fields = ("bread", )
+        extra_kwargs = {
+            "bread": {
+                "required": True,
+                "help_text": "阅读量"
+            }
+        }
+```
 
 
 
