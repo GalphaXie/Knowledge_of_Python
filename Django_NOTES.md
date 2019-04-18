@@ -2,13 +2,13 @@
 
 ### Django介绍
 
-![django_logo](C:/Users/richard/Desktop/2019%E5%B9%B4/MAIN/Knowledge_of_Python/img_django/django_logo.png)
+![django_logo](./img_django/django_logo.png)
 
 #### 1. 简介
 
 Django，**发音为[`dʒæŋɡəʊ]**，是用python语言写的开源web开发框架，并遵循MVC设计。劳伦斯出版集团为了开发以新闻内容为主的网站，而开发出来了这个框架，于2005年7月在BSD许可证下发布。这个名称来源于比利时的爵士音乐家DjangoReinhardt，他是一个吉普赛人，主要以演奏吉它为主，还演奏过小提琴等。**由于Django在近年来的迅速发展，应用越来越广泛，被著名IT开发杂志SDTimes评选为2013SDTimes100，位列"API、库和框架"分类第6位，被认为是该领域的佼佼者。**
 
-![django信念](C:/Users/richard/Desktop/2019%E5%B9%B4/MAIN/Knowledge_of_Python/img_django/django_belief.png)
+![django信念](./img_django/django_belief.png)
 
 Django的**主要目的是简便、快速的开发数据库驱动的网站。**它强调代码复用，多个组件可以很方便的以"插件"形式服务于整个框架，Django有许多功能强大的第三方插件，你甚至可以很方便的开发出自己的工具包。这使得Django具有很强的可扩展性。它还强调快速开发和DRY(DoNotRepeatYourself)原则。
 
@@ -42,7 +42,7 @@ Django的**主要目的是简便、快速的开发数据库驱动的网站。**�
 
 #### MVC模式说明
 
-![mvc](C:/Users/richard/Desktop/2019%E5%B9%B4/MAIN/Knowledge_of_Python/img_django/mvc.png)
+![mvc](./img_django/mvc.png)
 
 - M全拼为Model，主要封装对数据库层的访问，对数据库中的数据进行增、删、改、查操作。
 - V全拼为View，用于封装结果，生成页面展示的html内容。
@@ -50,7 +50,7 @@ Django的**主要目的是简便、快速的开发数据库驱动的网站。**�
 
 #### Django的MVT
 
-![mvt](C:/Users/richard/Desktop/2019%E5%B9%B4/MAIN/Knowledge_of_Python/img_django/mvt.png)
+![mvt](./img_django/mvt.png)
 
 - M全拼为Model，与MVC中的M功能相同，负责和数据库交互，进行数据处理。
 - V全拼为View，与MVC中的C功能相同，接收请求，进行业务处理，返回应答。
