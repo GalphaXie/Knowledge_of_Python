@@ -1,0 +1,1 @@
+ffmpeg -re  -rtsp_transport tcp -i "rtsp://admin:bl123456@10.90.93.144:554/Streaming/Channels/101" -f flv -vcodec libx264 -vprofile baseline -acodec aac -ar 44100 -strict -2 -ac 1 -f flv -s 1280x720 -q 10 "rtmp://127.0.0.1:1935/mylive/test"
