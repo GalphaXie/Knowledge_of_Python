@@ -1,0 +1,133 @@
+ip:  172.24.8.45
+用户:  root
+密码:  xunjian001Spicjx
+
+1. 关于前端部署
+前端: 172.24.8.45 8282
+更新前端内容时, data文件夹存储数据较多, gitlab上时没有保存的, 所以不要缺少该目录.
+只需要从 gitlab 上拉代码, 然后 覆盖 /usr/local/wurenji/ng/project 中的文件即可
+---------------------------------------------------------
+2. socket 服务器部署
+ip+port : 172.24.8.45 3000
+目录: /usr/local/wurenji/sk
+启动方式: nohup node server.js >> /dev/null 2>&1 & 
+功能:
+1. 给 web前端, 后端, app端提供通信支持
+2. 给安全帽提供GPS 信息
+----------------------------------------------------------
+3.nginx 部署
+
+-------------------------------------------------------
+4.
+
+
+
+
+关于 nginx 配置问题:
+1.安装方式,纯净的nginx直接安装到 opt或者 /usr/local/nginx
+2.配置之后, 配置文件都会到 /etc/nginx/nginx.conf     // 这个是ngxin的默认全局配置, 优先级最高
+3.可以直接copy一个安装好的 nginx 去运行,  配置文件在那里?   启动 /usr/loca/nginx/sbin/nginx start   不能通过服务器的方式启动
+
+-------------------------------------------------------------
+更新ubuntu 16.04 的源:
+0.设置 root 用户 :  sudo passwd root   //更新用户, root可以更换成别的.
+0. 操作系统的部署, 必须要更新操作系统的源. 否则很多底层的安装都会受阻
+1.可以通过 settings 去设置 系统镜像源, 但是可能会报错, 会损坏依赖的系统源文件. 
+- 1.1 备份原来的系统源
+sudo cp /etc/apt/sources.list /etc/apt/sources.list.old   
+- 1.2 更新源文件
+vim /etc/apt/sources.list   // 当一个新的空白文件, 用vim打开的时候, 需要在编辑模式下才能复制粘贴,.
+- 1.3  执行更新
+sudo apt-get update
+
+2.配置网络, 通过settings可能没法成功
+sudo vi /etc/network/interfaces                  //需要超级管理员权限
+```shell
+
+auto ens33
+
+iface ens33 inet static
+address 192.168.136.200
+netmask 255.255.255.0
+gateway 192.168.136.2
+```
+- 2.1 ens33 修改成对应的 网卡名字(ifconfig)
+- 2.2  重启network service
+sudo /etc/init.d/networking restart
+- 2.3 补充: 插入的那个网线口, ifconfig 会在对应的 网卡口显示 [RUNNING状态]
+
+3.安装 vim
+
+4.mysql 安装
+sudo apt-get update
+sudo apt-get install mysql-server
+如果出现 依赖问题:  sudo apt-get install -f  
+#服务管理
+#启动
+sudo service mysql start
+#停止
+sudo service mysql stop
+#服务状态
+sudo service mysql status
+卸载:
+sudo apt-get remove <package name>
+
+-------------------------------------------
+5. redis  安装server 和 client 
+sudo apt-get update
+sudo apt-get install redis-server
+注意: 要启动在后台  redis.conf  设置:  daemon yes
+
+6.nginx
+
+7. 虚拟环境相关的问题
+ubuntu 1604 安装了 python3 但是没有安装 pip3 , 所以不能安装 虚拟环境和包;
+问题在于 python-dev 类似这些底层的包没有安装. 
+问题:   能不能 离线安装  virtualenv 和  virutalwrapper 这两个包. 一个是python包, 一个是虚拟环境的包.
+问题2: 如何离线安装  venv 包. 主要是要找到相应的依赖
+问题3:  有没有一种直接拷贝环境过去用的. 如果能解解决这个问题, 那么以后好多问题都可以解决了.
+python解释器 + 系统环境变量 + 执行文件路径 |  和相关的第三方包.
+
+检查是否安装了虚拟环境:
+virtualenv --version
+如果没安装: sudo apt-get install python-virtualenv
+创建虚拟环境: virtualenv venv   (会安装一些基础的包, 包括 pip 所以还是需要网络)
+激活: source venv/bin/activate
+存在问题: 该方式激活环境是暂时的, 会话结束, 虚拟环境也会退出. 但是可以在开机自启中配置
+
+标准(所有功能)的安装方式
+安装虚拟环境(注意: 要在普通用户下安装, 而不要root)
+sudo apt-get install python-virtualenv
+sudo pip install virtualenvwrapper
+
+编辑
+sudo vim ~/.bashrc
+最后添加三行:
+export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3
+export WORKON_HOME=$HOME/.virtualenvs   
+source /usr/local/bin/virtualenvwrapper.sh
+生效:
+source ~/.bashrc
+
+创建虚拟环境:
+mkvirtualenv env_name -p python3
+进入虚拟环境:
+workon env_name
+退出虚拟环境:
+deactivate
+
+
+8.uwsgi 是否能够开机自启 
+
+9. 文件权限问题+ 只读文件的编辑问题
+- 9.1 给文件分配 用户组   chmod -R dir_name    (-R 是指代当前用户, dir_name=需要修改的文件目录名字)
+- 9.2 文件权限 
+
+
+项目能锻炼人, 珍惜每一次学习的机会; 针对那种"不负责任, 不解决问题, 只发号施令, 不关心同事" 的行为要坚决斗争.
+
+
+
+
+
+
