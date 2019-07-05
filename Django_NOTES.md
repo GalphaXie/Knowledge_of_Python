@@ -5681,3 +5681,243 @@ FDFS_CLIENT_CONF = os.path.join(BASE_DIR, 'utils/fastdfs/client.conf')
     - nginx转发
   - 项目的服务器结构
 
+
+
+---
+
+`mkvirtualenv Django_env –p python3`
+
+
+
+- 未命名参数按定义顺序传递， 如
+
+  ```python
+  url(r'^weather/([a-z]+)/(\d{4})/$', views.weather),
+  
+  def weather(request, city, year):
+      print('city=%s' % city)
+      print('year=%s' % year)
+      return HttpResponse('OK')
+  ```
+
+- 命名参数按名字传递，如
+
+  ```python
+  url(r'^weather/(?P<city>[a-z]+)/(?P<year>\d{4})/$', views.weather),
+  
+  def weather(request, year, city):
+      print('city=%s' % city)
+      print('year=%s' % year)
+      return HttpResponse('OK')
+  ```
+
+
+
+定义在django.http.QueryDict
+
+HttpRequest对象的属性GET、POST都是QueryDict类型的对象
+
+与python字典不同，QueryDict类型的对象用来处理同一个键带有多个值的情况
+
+- 方法get()：根据键获取值
+
+  如果一个键同时拥有多个值将获取最后一个值
+
+  如果键不存在则返回None值，可以设置默认值进行后续处理
+
+  ```python
+  dict.get('键',默认值)
+  可简写为
+  dict['键']
+  ```
+
+- 方法getlist()：根据键获取值，值以列表返回，可以获取指定键的所有值
+
+  如果键不存在则返回空列表[]，可以设置默认值进行后续处理
+
+  ```python
+  dict.getlist('键',默认值)
+  ```
+
+获取请求路径中的查询字符串参数（形如?k1=v1&k2=v2），可以通过request.GET属性获取，返回QueryDict对象。
+
+```python
+# /qs/?a=1&b=2&a=3
+
+def qs(request):
+    a = request.GET.get('a')
+    b = request.GET.get('b')
+    alist = request.GET.getlist('a')
+    print(a)  # 3
+    print(b)  # 2
+    print(alist)  # ['1', '3']
+    return HttpResponse('OK')
+```
+
+**重要：查询字符串不区分请求方式，即假使客户端进行POST方式的请求，依然可以通过request.GET获取请求中的查询字符串数据。**
+
+
+
+
+
+```python
+# 例如要获取: {"a": 1, "b": 2}
+import json
+
+def get_body_json(request):
+    json_str = request.body
+    json_str = json_str.decode()  # python3.6 无需执行此步
+    req_data = json.loads(json_str)
+    print(req_data['a'])
+    print(req_data['b'])
+    return HttpResponse('OK')
+```
+
+
+
+```python
+# 请求头的使用
+def get_headers(request):
+    print(request.META['CONTENT_TYPE'])
+    return HttpResponse('OK')
+```
+
+
+
+响应头可以直接将HttpResponse对象当做字典进行响应头键值对的设置：
+
+```python
+response = HttpResponse()
+response['YouYong'] = 'Python'  # 自定义响应头Itcast, 值为Python
+```
+
+
+
+示例
+
+```python
+from django.http import HttpResponse
+
+def demo_view(request):
+    return HttpResponse('YouYong python', status=400)
+    或者
+    response = HttpResponse('YouYong python')
+    response.status_code = 400
+    response['YouYong'] = 'Python'
+    return response
+```
+
+
+
+```python
+from django.shortcuts import redirect
+
+def demo_view(request):
+    return redirect('/index.html')
+```
+
+
+
+可以通过**HttpResponse**对象中的**set_cookie**方法来设置cookie。
+
+```python
+HttpResponse.set_cookie(cookie名, value=cookie值, max_age=cookie有效期)
+```
+
+- **max_age** 单位为秒，默认为**None**。如果是临时cookie，可将max_age设置为None。
+
+示例：
+
+```python
+def demo_view(request):
+    response = HttpResponse('ok')
+    response.set_cookie('IT_01', 'python1')  # 临时cookie
+    response.set_cookie('IT_02', 'python2', max_age=3600)  # 有效期一小时
+    return response
+```
+
+
+
+可以通过**HttpRequest**对象的**COOKIES**属性来读取本次请求携带的cookie值。**request.COOKIES为字典类型**。
+
+```python
+def demo_view(request):
+    cookie1 = request.COOKIES.get('IT_01')
+    print(cookie1)
+    return HttpResponse('OK')
+```
+
+
+
+```python
+from django.views.generic import View
+
+class RegisterView(View):
+    """类视图：处理注册"""
+
+    def get(self, request):
+        """处理GET请求，返回注册页面"""
+        return render(request, 'register.html')
+
+    def post(self, request):
+        """处理POST请求，实现注册逻辑"""
+        return HttpResponse('这里实现注册逻辑')
+```
+
+
+
+定义类视图需要继承自Django提供的父类**View**，可使用`from django.views.generic import View`或者`from django.views.generic.base import View` 导入，定义方式如上所示。
+
+**配置路由时，使用类视图的as_view()方法来添加**。
+
+
+
+```python
+urlpatterns = [
+    # 视图函数：注册
+    # url(r'^register/$', views.register, name='register'),
+    # 类视图：注册
+    url(r'^register/$', views.RegisterView.as_view(), name='register'),
+]
+```
+
+
+
+```python
+def simple_middleware(get_response):
+    # 此处编写的代码仅在Django第一次配置和初始化的时候执行一次。
+
+    def middleware(request):
+        # 此处编写的代码会在每个请求处理视图前被调用。
+
+        response = get_response(request)
+
+        # 此处编写的代码会在每个请求处理视图之后被调用。
+
+        return response
+
+    return middleware
+```
+
+
+
+```python
+from django.db import models
+
+#定义图书模型类BookInfo
+class BookInfo(models.Model):
+    btitle = models.CharField(max_length=20, verbose_name='名称')
+    bread = models.IntegerField(default=0, verbose_name='阅读量')
+    bcomment = models.IntegerField(default=0, verbose_name='评论量')
+    is_delete = models.BooleanField(default=False, verbose_name='逻辑删除')
+
+    class Meta:
+        db_table = 'tb_books'  # 指明数据库表名
+        verbose_name = '图书'  # 在admin站点中显示的名称
+        verbose_name_plural = verbose_name  # 显示的复数名称
+
+    def __str__(self):
+        """定义每个数据对象的显示信息"""
+        return self.btitle
+```
+
