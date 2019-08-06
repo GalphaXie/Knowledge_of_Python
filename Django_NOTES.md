@@ -134,7 +134,7 @@ Django的**主要目的是简便、快速的开发数据库驱动的网站。**�
   - 4.1 **settings.py**  **urls.py**  **uwsgi**  **\_\_init\_\_.py**  和平行的 **manage.py** , **db.splite3**
   - 4.2 **migrations文件夹**  **\_\_init\_\_.py**  **admin.py(后台管理站点)**  **apps.py(关于该子应用的一些配置信息)**  **models.py**  **tests.py(子引用的单元测试)**  **views.py**  和 我们需要自己创建的 **serializers.py**  **urls.py**
 
-  ![django项目目录结构](C:/Users/richard/Desktop/2019%E5%B9%B4/MAIN/Knowledge_of_Python/img_django/django_pro_dir.png)
+  ![django项目目录结构](img_django/django_pro_dir.png)
 
   - 与项目同名的目录，此处为demo。
   - **settings.py** 是项目的整体配置文件。
@@ -172,7 +172,7 @@ Django的**主要目的是简便、快速的开发数据库驱动的网站。**�
 - **tests.py** 文件用于开发测试用例，编写单元测试。
 - **views.py** 文件用于编写Web应用视图。
 
-![app子应用的目录结构](C:/Users/richard/Desktop/2019%E5%B9%B4/MAIN/Knowledge_of_Python/img_django/app_dir.png)
+![app子应用的目录结构](img_django/app_dir.png)
 
 #### 1.3 注册APP
 
@@ -180,7 +180,7 @@ Django的**主要目的是简便、快速的开发数据库驱动的网站。**�
 
 在工程配置文件settings.py中，**INSTALLED_APPS**项保存了工程中已经注册安装的子应用，初始工程中的INSTALLED_APPS如下：
 
-![初始INSTALLED_APPS](C:/Users/richard/Desktop/2019%E5%B9%B4/MAIN/Knowledge_of_Python/img_django/initial_installed_apps.png)
+![初始INSTALLED_APPS](img_django/initial_installed_apps.png)
 
 - **注册安装一个子应用的方法，即是将子应用的配置信息文件apps.py中的Config类添加到INSTALLED_APPS列表中。**
 - 从 **1.8 版本**之后, 注册路由就不在直接使用 **子应用的名字** 而是 代替成 **子应用名.apps.配置类的名字**
